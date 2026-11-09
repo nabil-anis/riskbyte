@@ -1,0 +1,10 @@
+id: rb-001
+title: SSH brute force from a single source
+severity: medium
+description: Five or more failed SSH logins from one address within five minutes.
+tags: [credential-access, T1110]
+match:
+  process: sshd
+  outcome: failure
+threshold: {count: 5, window: 300, group_by: src_ip}
+action: {kind: block_ip, target_field: src_ip}

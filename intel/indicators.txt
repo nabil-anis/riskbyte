@@ -1,0 +1,5 @@
+# One indicator per line (IPs, hostnames, hashes, domains). Replace with your own feeds.
+1.2.3.4           # placeholder attacker used by `python -m riskbyte demo`
+203.0.113.50      # example malicious scanner (TEST-NET-3)
+198.51.100.99     # example C2 (TEST-NET-2)
+evil-update.example

@@ -1,0 +1,25 @@
+services:
+  riskbyte:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8080:8080"        # console and API (put a TLS reverse proxy in front)
+      - "5514:5514/udp"    # syslog
+    volumes:
+      - riskbyte-data:/data
+      - ./license.rbl:/app/license.rbl:ro
+      - ./vendor_public.pem:/app/vendor_public.pem:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+  ollama:                  # optional local model runtime: docker compose --profile local up -d
+    profiles: ["local"]
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes: [ollama-models:/root/.ollama]
+    # After first start:  docker compose exec ollama ollama pull llama3.1:8b
+volumes:
+  riskbyte-data:
+  ollama-models:

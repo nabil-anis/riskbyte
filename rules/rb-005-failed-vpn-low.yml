@@ -1,0 +1,10 @@
+id: rb-005
+title: Repeated failed VPN logins
+severity: low
+description: "Low-severity noise rule. Ten failed VPN logins from one address in ten minutes."
+tags: [credential-access]
+match:
+  process: vpngw
+  outcome: failure
+threshold: {count: 10, window: 600, group_by: src_ip}
+action: {kind: block_ip, target_field: src_ip}

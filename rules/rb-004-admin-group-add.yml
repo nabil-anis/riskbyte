@@ -1,0 +1,8 @@
+id: rb-004
+title: Account added to an administrators group
+severity: medium
+description: A user was added to a privileged group.
+tags: [persistence, privilege-escalation, T1098]
+match:
+  message|contains: added to the administrators group
+action: {kind: disable_user, target_field: user}

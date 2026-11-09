@@ -1,0 +1,6 @@
+.env
+license.rbl
+keys/
+data/
+__pycache__/
+*.pyc

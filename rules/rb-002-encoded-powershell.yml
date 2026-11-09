@@ -1,0 +1,9 @@
+id: rb-002
+title: Encoded PowerShell command
+severity: high
+description: PowerShell launched with an encoded command, common in malware loaders.
+tags: [execution, T1059.001]
+match:
+  process|contains: powershell
+  cmdline|re: '\s-(e|enc|encodedcommand)\s'
+action: {kind: isolate_host, target_field: host}
