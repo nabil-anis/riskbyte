@@ -13,7 +13,7 @@ CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'se
 ID = r"(\d+)"
 
 
-def make_server(svc, bind: str, port: int) -> ThreadingHTTPServer:
+def get_handler_class(svc):
     cfg = svc.cfg
     tokens = [("admin", cfg.admin_token), ("analyst", cfg.analyst_token), ("ingest", cfg.ingest_token)]
 
@@ -72,7 +72,7 @@ def make_server(svc, bind: str, port: int) -> ThreadingHTTPServer:
             if method == "GET":
                 if path == "/healthz":
                     return self._json(200, {"ok": True})
-                if path == "/":
+                if path in ("", "/", "/api/index.py", "/api/index"):
                     return self._static("")
                 if path.startswith("/static/"):
                     return self._static(path[8:])
@@ -86,7 +86,12 @@ def make_server(svc, bind: str, port: int) -> ThreadingHTTPServer:
                 items = items if isinstance(items, list) else [items]
                 if len(items) > 1000:
                     raise ServiceError("max 1000 events per request", 413)
-                return self._json(202, {"accepted": svc.ingest(items, "api")})
+                accepted = svc.ingest(items, "api")
+                try:
+                    svc.process_pending()
+                except Exception:
+                    pass
+                return self._json(202, {"accepted": accepted})
             if not analyst:
                 return self._json(403, {"error": "forbidden"})
             if method == "GET":
@@ -126,4 +131,8 @@ def make_server(svc, bind: str, port: int) -> ThreadingHTTPServer:
         def do_POST(self):
             self._handle("POST")
 
-    return ThreadingHTTPServer((bind, port), H)
+    return H
+
+
+def make_server(svc, bind: str, port: int) -> ThreadingHTTPServer:
+    return ThreadingHTTPServer((bind, port), get_handler_class(svc))
