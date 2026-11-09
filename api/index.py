@@ -21,12 +21,12 @@ from riskbyte.api import get_handler_class
 
 _svc = None
 
-def get_service():
+def get_impl():
     global _svc
     if _svc is None:
         cfg = config.load()
         _svc = Service(cfg)
-        # Pre-seed demo security events on startup if database is empty
+        # Pre-seed demo security telemetry on startup if database is empty
         try:
             if _svc.stats()["events"] == 0:
                 now = time.time()
@@ -46,7 +46,14 @@ def get_service():
                 _svc.process_pending()
         except Exception:
             pass
-    return _svc
+    return get_handler_class(_svc)
 
-# Export Vercel handler class
-handler = get_handler_class(get_service())
+
+# Top-level class definition for Vercel Python AST detector
+class handler(get_impl()):
+    pass
+
+
+# Top-level app and application variables for WSGI/ASGI detectors
+app = handler
+application = handler
