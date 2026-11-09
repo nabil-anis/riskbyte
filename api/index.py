@@ -14,6 +14,8 @@ os.environ["RISKBYTE_DEV_MODE"] = os.environ.get("RISKBYTE_DEV_MODE", "1")
 if "VERCEL" in os.environ or not os.environ.get("RISKBYTE_DATA_DIR"):
     os.environ["RISKBYTE_DATA_DIR"] = "/tmp/riskbyte_data"
     os.environ["RISKBYTE_SYSLOG_PORT"] = "0"
+    os.environ["RISKBYTE_RULES_DIR"] = os.path.join(ROOT, "rules")
+    os.environ["RISKBYTE_INTEL_FILE"] = os.path.join(ROOT, "intel", "indicators.txt")
 
 from riskbyte import config
 from riskbyte.service import Service

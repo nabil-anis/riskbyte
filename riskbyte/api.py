@@ -73,8 +73,17 @@ def get_handler_class(svc):
 
         def _route(self, method):
             raw_path = self.headers.get("x-forwarded-uri") or self.headers.get("x-matched-path") or self.path
-            path = raw_path.split("?")[0]
-            query = dict(p.split("=", 1) for p in (raw_path.split("?", 1) + [""])[1].split("&") if "=" in p)
+            path_part, _, qs = raw_path.partition("?")
+            query = dict(p.split("=", 1) for p in qs.split("&") if "=" in p)
+            if "__path" in query:
+                path = query["__path"]
+            elif self.headers.get("x-matched-path"):
+                path = self.headers["x-matched-path"].partition("?")[0]
+            elif self.headers.get("x-forwarded-uri"):
+                path = self.headers["x-forwarded-uri"].partition("?")[0]
+            else:
+                path = path_part
+
             if method == "GET":
                 if path == "/healthz":
                     return self._json(200, {"ok": True})

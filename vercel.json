@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index.py" }
+    { "source": "/api/(.*)", "destination": "/api/index.py?__path=/api/$1" },
+    { "source": "/healthz", "destination": "/api/index.py?__path=/healthz" },
+    { "source": "/((?!static/|index\\.html).*)", "destination": "/api/index.py?__path=/$1" }
   ]
 }

@@ -400,7 +400,7 @@
       $("lerr").textContent = "Please enter an access token.";
       return;
     }
-    $("lerr").textContent = "";
+    $("lerr").textContent = "Authenticating...";
 
     api("/api/stats")
       .then(function () {
@@ -408,8 +408,8 @@
         $("lerr").textContent = "";
         start();
       })
-      .catch(function () {
-        $("lerr").textContent = "Access denied: invalid security token.";
+      .catch(function (err) {
+        $("lerr").textContent = err && err.message ? err.message : "Access denied: invalid security token.";
       });
   }
 
