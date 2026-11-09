@@ -63,12 +63,18 @@ def get_handler_class(svc):
                 name = "index.html"
             if name not in ("index.html", "app.js", "app.css"):
                 return self._json(404, {"error": "not found"})
+            mimes = {
+                "index.html": "text/html; charset=utf-8",
+                "app.css": "text/css; charset=utf-8",
+                "app.js": "application/javascript; charset=utf-8",
+            }
             with open(os.path.join(UI, name), "rb") as f:
-                self._send(200, f.read(), mimetypes.guess_type(name)[0] or "text/plain")
+                self._send(200, f.read(), mimes.get(name, "text/plain"))
 
         def _route(self, method):
-            path = self.path.split("?")[0]
-            query = dict(p.split("=", 1) for p in (self.path.split("?", 1) + [""])[1].split("&") if "=" in p)
+            raw_path = self.headers.get("x-forwarded-uri") or self.headers.get("x-matched-path") or self.path
+            path = raw_path.split("?")[0]
+            query = dict(p.split("=", 1) for p in (raw_path.split("?", 1) + [""])[1].split("&") if "=" in p)
             if method == "GET":
                 if path == "/healthz":
                     return self._json(200, {"ok": True})
