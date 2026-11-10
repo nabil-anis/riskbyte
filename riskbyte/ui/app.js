@@ -14,13 +14,16 @@
   }
 
   function api(path, method) {
-    return fetch(path, {
+    const requestPath = path.startsWith('/') ? path : '/' + path;
+    console.log('Fetching', requestPath);
+    return fetch(requestPath, {
       method: method || "GET",
       headers: {
         Authorization: "Bearer " + token,
         "X-Riskbyte-Console": "1"
       }
     }).then(function (r) {
+      console.log('Response status for', requestPath, ':', r.status);
       if (r.status === 401 || r.status === 403) {
         if (token && $("app") && !$("app").hidden) {
           signOut();
