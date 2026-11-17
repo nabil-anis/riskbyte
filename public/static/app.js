@@ -1,6 +1,7 @@
 (function () {
   "use strict";
 
+  /* ── Helpers ─────────────────────────────────────────── */
   var $ = function (id) { return document.getElementById(id); };
   var token = sessionStorage.getItem("rb_token") || "";
   var cur = null;
@@ -13,9 +14,9 @@
     return e;
   }
 
+  /* ── API Call ─────────────────────────────────────────── */
   function api(path, method) {
-    const requestPath = path.startsWith('/') ? path : '/' + path;
-    console.log('Fetching', requestPath);
+    var requestPath = path.startsWith("/") ? path : "/" + path;
     return fetch(requestPath, {
       method: method || "GET",
       headers: {
@@ -23,47 +24,117 @@
         "X-Riskbyte-Console": "1"
       }
     }).then(function (r) {
-      console.log('Response status for', requestPath, ':', r.status);
       if (r.status === 401 || r.status === 403) {
-        if (token && $("app") && !$("app").hidden) {
-          signOut();
-        }
-        throw new Error("Authentication failed: invalid token");
+        throw new Error("Authentication failed: invalid or expired token.");
       }
-      return r.json().then(function (j) {
-        if (!r.ok) throw new Error(j.error || r.status);
-        return j;
+      return r.text().then(function (txt) {
+        var j = null;
+        try {
+          j = JSON.parse(txt);
+        } catch (e) {}
+
+        if (!r.ok) {
+          if (r.status === 404) {
+            throw new Error("API route not found (404). If running locally, ensure backend server is started.");
+          }
+          throw new Error((j && j.error) ? j.error : ("Server error (" + r.status + ")"));
+        }
+        return j !== null ? j : txt;
       });
+    }).catch(function (err) {
+      if (err instanceof TypeError && err.message.toLowerCase().indexOf("fetch") !== -1) {
+        throw new Error("Cannot connect to server. Please ensure the backend is running.");
+      }
+      throw err;
     });
   }
 
   function when(ts) {
     if (!ts) return "";
     var d = new Date(ts * 1000);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + 
-           " (" + d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ")";
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) +
+           " (" + d.toLocaleDateString([], { month: "short", day: "numeric" }) + ")";
+  }
+
+  /* ── Auth State ──────────────────────────────────────── */
+  function applyAuthState(authed) {
+    var login = $("login");
+    var app = $("app");
+    var out = $("out");
+
+    if (authed) {
+      if (login) login.style.display = "none";
+      if (app) app.style.display = "flex";
+      if (out) out.style.display = "";
+    } else {
+      if (login) login.style.display = "";
+      if (app) app.style.display = "none";
+      if (out) out.style.display = "none";
+    }
   }
 
   function signOut() {
     sessionStorage.removeItem("rb_token");
     token = "";
     clearInterval(timer);
-    
-    var app = $("app");
-    var login = $("login");
-    var out = $("out");
-    
-    if (app) {
-      app.hidden = true;
-      app.style.display = "none";
-    }
-    if (login) {
-      login.hidden = false;
-      login.style.display = "flex";
-    }
-    if (out) out.hidden = true;
+    timer = null;
+    cur = null;
+    applyAuthState(false);
+    showError("");
+    // Re-enable all role buttons
+    document.querySelectorAll(".auth-role-btn").forEach(function (b) {
+      b.disabled = false;
+      b.classList.remove("loading");
+    });
   }
 
+  /* ── Login Flow ──────────────────────────────────────── */
+  function showError(msg) {
+    var lerr = $("lerr");
+    if (!lerr) return;
+    lerr.textContent = msg || "";
+    lerr.style.display = msg ? "block" : "none";
+  }
+
+  function performLogin(val, clickedBtn) {
+    var raw = (val || "").trim();
+    if (!raw) return;
+
+    showError("");
+    token = raw;
+
+    // Show loading state on the clicked button
+    if (clickedBtn) {
+      clickedBtn.disabled = true;
+      clickedBtn.classList.add("loading");
+    }
+
+    api("/api/stats")
+      .then(function () {
+        sessionStorage.setItem("rb_token", token);
+        showError("");
+        start();
+      })
+      .catch(function (err) {
+        token = "";
+        if (clickedBtn) {
+          clickedBtn.disabled = false;
+          clickedBtn.classList.remove("loading");
+        }
+        var msg = (err && err.message) ? err.message : "Access denied.";
+        showError(msg);
+      });
+  }
+
+  /* ── App Start (post-auth) ───────────────────────────── */
+  function start() {
+    applyAuthState(true);
+    refresh();
+    clearInterval(timer);
+    timer = setInterval(refresh, 5000);
+  }
+
+  /* ── Render Alert List ───────────────────────────────── */
   function renderList(alerts) {
     var box = $("list");
     if (!box) return;
@@ -85,7 +156,7 @@
 
     alerts.forEach(function (a) {
       var item = el("div", "alert-item s-" + a.severity + (cur === a.id ? " on" : ""));
-      
+
       var hdr = el("div", "alert-item-header");
       hdr.appendChild(el("span", "alert-title", a.title));
       var sevPill = el("span", "severity-pill sev-" + a.severity, a.severity);
@@ -113,7 +184,6 @@
       box.appendChild(item);
     });
 
-    // Auto-select first alert if none currently active
     if (cur === null && alerts.length > 0) {
       cur = alerts[0].id;
       loadDetail();
@@ -122,6 +192,7 @@
     }
   }
 
+  /* ── Load Alert Detail ───────────────────────────────── */
   function loadDetail() {
     if (!cur) return;
     api("/api/alerts/" + cur).then(function (a) {
@@ -129,14 +200,12 @@
       if (!d) return;
       d.replaceChildren();
 
-      // 1. Alert Detail Header Card
       var headCard = el("div", "detail-header-card");
       var topRow = el("div", "detail-top-row");
       topRow.appendChild(el("span", "detail-rule-tag", "Rule: " + a.rule_id));
       var sev = el("span", "severity-pill sev-" + a.severity, a.severity.toUpperCase());
       topRow.appendChild(sev);
       headCard.appendChild(topRow);
-
       headCard.appendChild(el("h2", "detail-title", a.title));
 
       var subMeta = el("div", "detail-sub-meta");
@@ -149,13 +218,11 @@
       headCard.appendChild(subMeta);
       d.appendChild(headCard);
 
-      // 2. AI Triage Card
       var triageCard = el("div", "triage-card");
       var tHdr = el("div", "triage-header");
       var headingGroup = el("div", "triage-heading-group");
       headingGroup.appendChild(el("span", "triage-title", "Autonomous Triage & Investigation"));
       tHdr.appendChild(headingGroup);
-
       var engineTag = el("span", "triage-engine-tag", a.triage ? a.triage.engine : "pending");
       tHdr.appendChild(engineTag);
       triageCard.appendChild(tHdr);
@@ -195,7 +262,6 @@
       }
       d.appendChild(triageCard);
 
-      // 3. Proposed Response Action & Approval Gate Card
       var actCard = el("div", "action-card");
       var actHeader = el("div", "action-card-header");
       actHeader.appendChild(el("span", "action-card-title", "Analyst Approval Gate · Response Action"));
@@ -207,7 +273,6 @@
         leftBox.appendChild(el("div", "action-kind-label", "Recommended Action:"));
         leftBox.appendChild(el("div", "action-kind-val", a.proposed_action.kind.replace("_", " ").toUpperCase()));
         detailsBox.appendChild(leftBox);
-
         var rightBox = el("div", null);
         rightBox.appendChild(el("div", "action-kind-label", "Target Entity:"));
         rightBox.appendChild(el("div", "action-target-badge", a.proposed_action.target));
@@ -223,15 +288,12 @@
       var btnRow = el("div", "action-buttons-row");
       var okBtn = el("button", "btn-approve", "Approve Action");
       var noBtn = el("button", "btn-dismiss", "Dismiss Alert");
-
       okBtn.type = "button";
       noBtn.type = "button";
       okBtn.disabled = !(a.status === "triaged" && a.proposed_action);
       noBtn.disabled = !open;
-
       okBtn.addEventListener("click", function () { act("approve"); });
       noBtn.addEventListener("click", function () { act("dismiss"); });
-
       btnRow.appendChild(okBtn);
       btnRow.appendChild(noBtn);
       actCard.appendChild(btnRow);
@@ -241,7 +303,6 @@
       actCard.appendChild(msg);
       d.appendChild(actCard);
 
-      // 4. Raw Telemetry Event Stream (Terminal style)
       var termCard = el("div", "terminal-card");
       var termHdr = el("div", "terminal-header");
       var termTitle = el("div", "terminal-title");
@@ -272,6 +333,7 @@
     });
   }
 
+  /* ── Approve / Dismiss Action ────────────────────────── */
   function act(kind) {
     api("/api/alerts/" + cur + "/" + kind, "POST")
       .then(function (r) {
@@ -296,6 +358,7 @@
       });
   }
 
+  /* ── Table Renderer ──────────────────────────────────── */
   function table(id, head, rows) {
     var t = $(id);
     if (!t) return;
@@ -303,9 +366,7 @@
 
     var thead = el("thead");
     var tr = el("tr");
-    head.forEach(function (h) {
-      tr.appendChild(el("th", null, h));
-    });
+    head.forEach(function (h) { tr.appendChild(el("th", null, h)); });
     thead.appendChild(tr);
     t.appendChild(thead);
 
@@ -323,39 +384,41 @@
     } else {
       rows.forEach(function (r) {
         var x = el("tr");
-        r.forEach(function (c) {
-          x.appendChild(el("td", null, c));
-        });
+        r.forEach(function (c) { x.appendChild(el("td", null, c)); });
         tbody.appendChild(x);
       });
     }
     t.appendChild(tbody);
   }
 
+  /* ── Refresh Dashboard Data ──────────────────────────── */
   function refresh() {
-    api("/api/alerts").then(renderList).catch(function () {});
+    api("/api/alerts").then(renderList).catch(function (err) {
+      if (err && err.message && err.message.indexOf("Authentication") !== -1) signOut();
+    });
 
     api("/api/license").then(function (l) {
       var licEl = $("lic");
       if (licEl) {
-        licEl.textContent = (l.state || "dev").toUpperCase() + 
-          (l.plan ? " · " + l.plan : "") + 
+        licEl.textContent = (l.state || "dev").toUpperCase() +
+          (l.plan ? " · " + l.plan : "") +
           (l.days_left != null ? " · " + l.days_left + "d left" : "");
       }
       var b = $("banner");
       if (b) {
-        b.hidden = l.state === "active" || l.state === "dev";
-        b.textContent = l.message || "";
+        if (l.state === "active" || l.state === "dev") {
+          b.style.display = "none";
+        } else {
+          b.style.display = "";
+          b.textContent = l.message || "";
+        }
       }
     }).catch(function () {});
 
     api("/api/stats").then(function (s) {
       var intactText = s.audit_intact ? "Audit: Intact ✓" : "Audit: TAMPERED ⚠";
       var statsEl = $("stats");
-      if (statsEl) {
-        statsEl.textContent = s.events + " events · " + s.open_alerts + " open · " + intactText;
-      }
-
+      if (statsEl) statsEl.textContent = s.events + " events · " + s.open_alerts + " open · " + intactText;
       var auditBadge = $("audit-integrity-badge");
       if (auditBadge) {
         auditBadge.className = "audit-badge " + (s.audit_intact ? "intact" : "tampered");
@@ -377,67 +440,22 @@
     }).catch(function () {});
   }
 
-  function start() {
-    var login = $("login");
-    var app = $("app");
-    var out = $("out");
+  /* ── DOM Ready: Wire Up Events ───────────────────────── */
 
-    if (login) {
-      login.hidden = true;
-      login.style.display = "none";
-    }
-    if (app) {
-      app.hidden = false;
-      app.style.display = "flex";
-    }
-    if (out) out.hidden = false;
+  // Start in signed-out state
+  applyAuthState(false);
 
-    refresh();
-    clearInterval(timer);
-    timer = setInterval(refresh, 5000);
-  }
-
-  function performLogin(val) {
-    token = (val || "").trim();
-    if (!token) {
-      $("lerr").textContent = "Please enter an access token.";
-      return;
-    }
-    $("lerr").textContent = "Authenticating...";
-
-    api("/api/stats")
-      .then(function () {
-        sessionStorage.setItem("rb_token", token);
-        $("lerr").textContent = "";
-        start();
-      })
-      .catch(function (err) {
-        $("lerr").textContent = err && err.message ? err.message : "Access denied: invalid security token.";
-      });
-  }
-
-  // Quick dev token buttons (dev-analyst, dev-admin, dev-ingest)
-  document.querySelectorAll(".fill-token").forEach(function (btn) {
+  // Role buttons — click to authenticate directly
+  document.querySelectorAll(".auth-role-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var tok = btn.getAttribute("data-token");
-      $("tok").value = tok;
-      performLogin(tok);
+      performLogin(tok, btn);
     });
   });
 
-  // Form submission
-  var lf = $("lf");
-  if (lf) {
-    lf.addEventListener("submit", function (e) {
-      e.preventDefault();
-      performLogin($("tok").value);
-    });
-  }
-
+  // Sign out button
   var outBtn = $("out");
-  if (outBtn) {
-    outBtn.addEventListener("click", signOut);
-  }
+  if (outBtn) outBtn.addEventListener("click", signOut);
 
   // Activity tabs switching
   document.querySelectorAll(".tabs-group button").forEach(function (b) {
@@ -447,19 +465,19 @@
       });
       ["alerts", "cases", "audit"].forEach(function (n) {
         var v = $("v-" + n);
-        if (v) {
-          v.hidden = (n !== b.dataset.t);
-          v.style.display = (n === b.dataset.t) ? "" : "none";
-        }
+        if (v) v.style.display = (n === b.dataset.t) ? "" : "none";
       });
     });
   });
 
   // Auto-login if token already in sessionStorage
   if (token) {
-    api("/api/stats").then(start).catch(function () {
-      sessionStorage.removeItem("rb_token");
-      signOut();
-    });
+    api("/api/stats")
+      .then(function () { start(); })
+      .catch(function () {
+        sessionStorage.removeItem("rb_token");
+        token = "";
+        applyAuthState(false);
+      });
   }
 })();

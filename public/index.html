@@ -9,7 +9,7 @@
 <body class="macos-theme">
   <!-- Main IDE Window Container -->
   <div class="window-frame">
-    <!-- Clean VS Code / macOS Titlebar (No traffic light circles) -->
+    <!-- Clean VS Code / macOS Titlebar -->
     <header class="titlebar">
       <div class="titlebar-left">
         <div class="app-brand">
@@ -34,7 +34,7 @@
       <div class="titlebar-right">
         <span id="lic" class="status-pill lic-pill">Checking...</span>
         <span id="stats" class="status-pill stats-pill"></span>
-        <button id="out" class="btn-ghost" hidden title="Sign out of SOC console">
+        <button id="out" class="btn-ghost titlebar-signout" title="Sign out of SOC console">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
@@ -45,65 +45,84 @@
       </div>
     </header>
 
-    <!-- Authentication Screen (Login) -->
-    <main id="login" class="login-wrapper">
-      <div class="login-card">
-        <div class="login-header">
-          <div class="shield-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- ============================================= -->
+    <!-- AUTH SCREEN — Role picker (no token input)    -->
+    <!-- ============================================= -->
+    <main id="login" class="auth-screen">
+      <div class="auth-picker">
+        <div class="auth-picker-header">
+          <div class="auth-shield-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M12 8v4"/>
-              <path d="M12 16h.01"/>
+              <path d="M9 12l2 2 4-4"/>
             </svg>
           </div>
-          <h1>Riskbyte SOC Console</h1>
-          <p class="login-sub">Self-Hosted Autonomous SOC Investigation Agent</p>
-          <div class="course-badge">
-            <strong>Muhammad Nabil</strong> &bull; ID: <code>F23CSC009</code><br>
-            <span>Essentials of Cybersecurity</span>
-          </div>
+          <h1 class="auth-picker-title">Riskbyte <span>SOC</span></h1>
+          <p class="auth-picker-sub">Select a role to enter the console</p>
         </div>
 
-        <form id="lf" class="login-form">
-          <div class="form-group">
-            <label for="tok">
-              <span>Security Access Token</span>
-              <span class="token-hint">Bearer RBAC token</span>
-            </label>
-            <div class="input-container">
-              <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        <div id="lerr" class="auth-error" role="alert"></div>
+
+        <div class="auth-role-buttons">
+          <button type="button" class="auth-role-btn role-analyst" data-token="dev-analyst">
+            <div class="auth-role-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
               </svg>
-              <input id="tok" type="password" value="dev-analyst" placeholder="Enter dev-analyst or dev-admin" autocomplete="off" autofocus>
             </div>
-          </div>
-
-          <div id="lerr" class="err-banner" role="alert"></div>
-
-          <button id="btn-login-submit" class="btn-primary full-width" type="submit">
-            <span>Authenticate Session</span>
-            <svg class="btn-icon-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
+            <div class="auth-role-info">
+              <span class="auth-role-name">Analyst</span>
+              <span class="auth-role-desc">View alerts, triage, approve actions</span>
+            </div>
+            <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
             </svg>
           </button>
 
-          <div class="quick-token-tip">
-            <div style="margin-bottom: 8px;">Dev Mode Tokens (click any to authenticate):</div>
-            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-              <button type="button" class="token-code-btn fill-token" data-token="dev-analyst">dev-analyst</button>
-              <button type="button" class="token-code-btn fill-token" data-token="dev-admin">dev-admin</button>
-              <button type="button" class="token-code-btn fill-token" data-token="dev-ingest">dev-ingest</button>
+          <button type="button" class="auth-role-btn role-admin" data-token="dev-admin">
+            <div class="auth-role-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
             </div>
-          </div>
-        </form>
+            <div class="auth-role-info">
+              <span class="auth-role-name">Admin</span>
+              <span class="auth-role-desc">Full access, configuration, audit</span>
+            </div>
+            <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+
+          <button type="button" class="auth-role-btn role-ingest" data-token="dev-ingest">
+            <div class="auth-role-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 16 12 12 8 16"/>
+                <line x1="12" y1="12" x2="12" y2="21"/>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+              </svg>
+            </div>
+            <div class="auth-role-info">
+              <span class="auth-role-name">Ingest</span>
+              <span class="auth-role-desc">Push events, telemetry pipeline</span>
+            </div>
+            <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="auth-picker-footer">
+          <strong>Muhammad Nabil</strong> &bull; F23CSC009 &bull; Essentials of Cybersecurity
+        </div>
       </div>
     </main>
 
     <!-- Main Workspace Application -->
-    <main id="app" class="app-workspace" hidden>
-      <div id="banner" class="license-banner" hidden></div>
+    <main id="app" class="app-workspace">
+      <div id="banner" class="license-banner"></div>
 
       <!-- Activity Navigation Bar -->
       <nav class="activity-bar">
@@ -114,7 +133,7 @@
               <line x1="12" y1="9" x2="12" y2="13"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            <span>Alerts & Triage</span>
+            <span>Alerts &amp; Triage</span>
             <span id="badge-alerts-count" class="tab-badge">0</span>
           </button>
 
@@ -185,7 +204,7 @@
       </section>
 
       <!-- View 2: Cases Table -->
-      <section id="v-cases" class="data-table-wrapper" hidden>
+      <section id="v-cases" class="data-table-wrapper" style="display:none">
         <div class="table-card">
           <div class="table-card-header">
             <div>
@@ -201,7 +220,7 @@
       </section>
 
       <!-- View 3: Audit Trail Table -->
-      <section id="v-audit" class="data-table-wrapper" hidden>
+      <section id="v-audit" class="data-table-wrapper" style="display:none">
         <div class="table-card">
           <div class="table-card-header">
             <div>

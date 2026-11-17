@@ -4,6 +4,28 @@ import os
 from dataclasses import dataclass
 
 
+def _load_dotenv():
+    # Attempt to load .env from cwd or parent if present
+    for path in (".env", os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")):
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#") or "=" not in line:
+                            continue
+                        k, v = line.split("=", 1)
+                        k, v = k.strip(), v.strip().strip("'\"")
+                        if k and k not in os.environ:
+                            os.environ[k] = v
+                break
+            except Exception:
+                pass
+
+
+_load_dotenv()
+
+
 class ConfigError(Exception):
     pass
 
