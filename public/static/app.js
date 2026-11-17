@@ -7,6 +7,9 @@
   var cur = null;
   var timer = null;
 
+  // Server mode: 'live' or 'sim'
+  var serverMode = localStorage.getItem("rb_server_mode") || "live";
+
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -14,8 +17,200 @@
     return e;
   }
 
-  /* ── API Call ─────────────────────────────────────────── */
+  function when(ts) {
+    if (!ts) return "";
+    var d = new Date(ts * 1000);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) +
+           " (" + d.toLocaleDateString([], { month: "short", day: "numeric" }) + ")";
+  }
+
+  /* ── In-Browser Simulated Server (Mock Backend) ──────── */
+  var simData = {
+    stats: {
+      events: 16,
+      open_alerts: 4,
+      open_cases: 2,
+      audit_intact: true,
+      version: "0.1.0-standalone",
+      llm: "heuristic-sim",
+      llm_redaction: false
+    },
+    license: {
+      state: "dev",
+      plan: "Standalone Edition",
+      days_left: 365,
+      features: ["all"],
+      message: ""
+    },
+    cases: [
+      { id: 102, entity: "fin-lt-042 (m.silva)", severity: "critical", status: "open", ts: Math.floor(Date.now() / 1000) - 300 },
+      { id: 101, entity: "web-01 (203.0.113.9)", severity: "high", status: "open", ts: Math.floor(Date.now() / 1000) - 1800 }
+    ],
+    audit: [
+      { id: 1, ts: Math.floor(Date.now() / 1000) - 120, actor: "analyst:muhammad.nabil", kind: "alert_approved", alert_id: 1, detail: "Isolate host fin-lt-042 execution approved" },
+      { id: 2, ts: Math.floor(Date.now() / 1000) - 600, actor: "system:agent", kind: "rule_fired", alert_id: 2, detail: "SSH bruteforce detected on web-01" },
+      { id: 3, ts: Math.floor(Date.now() / 1000) - 1200, actor: "ingest:api", kind: "telemetry_batch", alert_id: null, detail: "Batch ingest accepted 8 event records" }
+    ],
+    alerts: [
+      {
+        id: 1,
+        title: "Base64 Encoded PowerShell Process Launch",
+        severity: "critical",
+        status: "triaged",
+        rule_id: "rb-002",
+        ts: Math.floor(Date.now() / 1000) - 120,
+        host: "fin-lt-042",
+        user: "m.silva",
+        src_ip: "10.0.4.15",
+        case_id: 102,
+        triage: {
+          engine: "autonomous-ai",
+          verdict: "malicious",
+          confidence: 0.94,
+          summary: "Encoded PowerShell process attempting memory injection and command invocation. High likelihood of credential harvesting attack.",
+          steps: [
+            "Deobfuscated Base64 payload reveals invoke-expression (IEX) web download cradle.",
+            "Process executed under user m.silva from non-standard staging path C:\\Users\\Public.",
+            "Cross-referenced telemetry with active threat indicators: matched known Cobalt Strike stager signature.",
+            "Automated containment rule triggered: host network isolation recommended."
+          ]
+        },
+        proposed_action: {
+          kind: "isolate_host",
+          target: "fin-lt-042"
+        },
+        events: [
+          { ts: Math.floor(Date.now() / 1000) - 120, host: "fin-lt-042", user: "m.silva", process: "powershell.exe", cmdline: "powershell.exe -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGo...", action: "process_start", outcome: "success" },
+          { ts: Math.floor(Date.now() / 1000) - 118, host: "fin-lt-042", user: "m.silva", process: "powershell.exe", src_ip: "10.0.4.15", dst_ip: "198.51.100.99", action: "network_connect", outcome: "success" }
+        ]
+      },
+      {
+        id: 2,
+        title: "SSH Repeated Authentication Bruteforce",
+        severity: "high",
+        status: "triaged",
+        rule_id: "rb-001",
+        ts: Math.floor(Date.now() / 1000) - 340,
+        host: "web-01",
+        user: "root",
+        src_ip: "203.0.113.9",
+        case_id: 101,
+        triage: {
+          engine: "autonomous-ai",
+          verdict: "malicious",
+          confidence: 0.98,
+          summary: "Over 40 failed root login attempts within 60 seconds from external IP 203.0.113.9.",
+          steps: [
+            "Source IP identified in active threat intelligence blacklist.",
+            "High rate of dictionary attacks on port 22.",
+            "Recommendation: Block source IP at perimeter edge."
+          ]
+        },
+        proposed_action: {
+          kind: "block_ip",
+          target: "203.0.113.9"
+        },
+        events: [
+          { ts: Math.floor(Date.now() / 1000) - 340, host: "web-01", user: "root", src_ip: "203.0.113.9", process: "sshd", action: "login", outcome: "failure", message: "Failed password for root" },
+          { ts: Math.floor(Date.now() / 1000) - 338, host: "web-01", user: "root", src_ip: "203.0.113.9", process: "sshd", action: "login", outcome: "failure", message: "Failed password for root" }
+        ]
+      },
+      {
+        id: 3,
+        title: "LSASS Memory Dumping Utility Detected",
+        severity: "critical",
+        status: "triaged",
+        rule_id: "rb-003",
+        ts: Math.floor(Date.now() / 1000) - 600,
+        host: "fin-lt-042",
+        user: "m.silva",
+        case_id: 102,
+        triage: {
+          engine: "autonomous-ai",
+          verdict: "malicious",
+          confidence: 0.96,
+          summary: "procdump utility invoked against lsass.exe process memory dump.",
+          steps: [
+            "Process procdump.exe executed targeting Local Security Authority Subsystem Service.",
+            "High-risk credential extraction attempt identified.",
+            "Automated containment: Account disablement & host quarantine advised."
+          ]
+        },
+        proposed_action: {
+          kind: "disable_user",
+          target: "m.silva"
+        },
+        events: [
+          { ts: Math.floor(Date.now() / 1000) - 600, host: "fin-lt-042", user: "m.silva", process: "cmd.exe", cmdline: "procdump.exe -ma lsass.exe lsass.dmp", action: "process_start", outcome: "success" }
+        ]
+      },
+      {
+        id: 4,
+        title: "VPN Failure Anomaly from Geographically Displaced IP",
+        severity: "low",
+        status: "triaged",
+        rule_id: "rb-005",
+        ts: Math.floor(Date.now() / 1000) - 1200,
+        host: "vpn-gw-01",
+        user: "svc-backup",
+        src_ip: "198.51.100.7",
+        case_id: null,
+        triage: {
+          engine: "autonomous-ai",
+          verdict: "suspicious",
+          confidence: 0.65,
+          summary: "Anomalous failed authentication on internal backup service account from untrusted CIDR block.",
+          steps: [
+            "User svc-backup failed radius challenge authentication.",
+            "No active sessions established; rate limited by gateway."
+          ]
+        },
+        proposed_action: null,
+        events: [
+          { ts: Math.floor(Date.now() / 1000) - 1200, host: "vpn-gw-01", user: "svc-backup", src_ip: "198.51.100.7", process: "openvpn", action: "login", outcome: "failure" }
+        ]
+      }
+    ]
+  };
+
+  function simApi(path, method) {
+    return new Promise(function (resolve, reject) {
+      setTimeout(function () {
+        var cleanPath = path.split("?")[0];
+        if (cleanPath === "/api/stats") return resolve(simData.stats);
+        if (cleanPath === "/api/license") return resolve(simData.license);
+        if (cleanPath === "/api/alerts") return resolve(simData.alerts);
+        if (cleanPath.startsWith("/api/alerts/") && cleanPath.endsWith("/approve")) {
+          var id = parseInt(cleanPath.split("/")[3]);
+          var alert = simData.alerts.find(function (a) { return a.id === id; });
+          if (alert) alert.status = "approved";
+          return resolve({ result: "Action approved and dispatched to containment engine" });
+        }
+        if (cleanPath.startsWith("/api/alerts/") && cleanPath.endsWith("/dismiss")) {
+          var id = parseInt(cleanPath.split("/")[3]);
+          var alert = simData.alerts.find(function (a) { return a.id === id; });
+          if (alert) alert.status = "dismissed";
+          return resolve({ result: "Alert marked as dismissed" });
+        }
+        if (cleanPath.startsWith("/api/alerts/")) {
+          var id = parseInt(cleanPath.split("/")[3]);
+          var alert = simData.alerts.find(function (a) { return a.id === id; });
+          if (alert) return resolve(alert);
+          return reject(new Error("Alert not found"));
+        }
+        if (cleanPath === "/api/cases") return resolve(simData.cases);
+        if (cleanPath === "/api/audit") return resolve(simData.audit);
+        reject(new Error("Endpoint not found: " + path));
+      }, 60);
+    });
+  }
+
+  /* ── Unified API Dispatcher ──────────────────────────── */
   function api(path, method) {
+    if (serverMode === "sim") {
+      return simApi(path, method);
+    }
+
     var requestPath = path.startsWith("/") ? path : "/" + path;
     return fetch(requestPath, {
       method: method || "GET",
@@ -29,13 +224,11 @@
       }
       return r.text().then(function (txt) {
         var j = null;
-        try {
-          j = JSON.parse(txt);
-        } catch (e) {}
+        try { j = JSON.parse(txt); } catch (e) {}
 
         if (!r.ok) {
           if (r.status === 404) {
-            throw new Error("API route not found (404). If running locally, ensure backend server is started.");
+            throw new Error("API 404 Not Found. Backend server is not running or route not found. Toggle server mode to 'In-Browser Sim' to run standalone.");
           }
           throw new Error((j && j.error) ? j.error : ("Server error (" + r.status + ")"));
         }
@@ -43,17 +236,43 @@
       });
     }).catch(function (err) {
       if (err instanceof TypeError && err.message.toLowerCase().indexOf("fetch") !== -1) {
-        throw new Error("Cannot connect to server. Please ensure the backend is running.");
+        throw new Error("Cannot connect to server. Switch server mode to 'In-Browser Sim' to run standalone without a terminal.");
       }
       throw err;
     });
   }
 
-  function when(ts) {
-    if (!ts) return "";
-    var d = new Date(ts * 1000);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) +
-           " (" + d.toLocaleDateString([], { month: "short", day: "numeric" }) + ")";
+  /* ── Server Mode Toggle UI ───────────────────────────── */
+  function updateServerModeUI() {
+    var label = $("server-status-label");
+    var dot = document.querySelector("#server-toggle .server-status-dot");
+    var authDot = document.querySelector("#auth-server-toggle-btn .server-status-dot");
+    var authModeText = $("auth-server-mode-text");
+    var authHint = document.querySelector(".auth-server-switch-hint");
+
+    if (serverMode === "live") {
+      if (label) label.textContent = "Server: Live";
+      if (dot) { dot.className = "server-status-dot online"; }
+      if (authDot) { authDot.className = "server-status-dot online"; }
+      if (authModeText) authModeText.textContent = "Server: Live Backend (Port 8080)";
+      if (authHint) authHint.textContent = "Switch to In-Browser Sim";
+    } else {
+      if (label) label.textContent = "Server: Standalone Sim";
+      if (dot) { dot.className = "server-status-dot sim"; }
+      if (authDot) { authDot.className = "server-status-dot sim"; }
+      if (authModeText) authModeText.textContent = "Server: In-Browser Sim (No terminal needed)";
+      if (authHint) authHint.textContent = "Switch to Live Server";
+    }
+  }
+
+  function toggleServerMode() {
+    serverMode = (serverMode === "live") ? "sim" : "live";
+    localStorage.setItem("rb_server_mode", serverMode);
+    updateServerModeUI();
+    showError("");
+    if ($("app") && $("app").style.display === "flex") {
+      refresh();
+    }
   }
 
   /* ── Auth State ──────────────────────────────────────── */
@@ -81,7 +300,6 @@
     cur = null;
     applyAuthState(false);
     showError("");
-    // Re-enable all role buttons
     document.querySelectorAll(".auth-role-btn").forEach(function (b) {
       b.disabled = false;
       b.classList.remove("loading");
@@ -103,7 +321,6 @@
     showError("");
     token = raw;
 
-    // Show loading state on the clicked button
     if (clickedBtn) {
       clickedBtn.disabled = true;
       clickedBtn.classList.add("loading");
@@ -441,6 +658,15 @@
   }
 
   /* ── DOM Ready: Wire Up Events ───────────────────────── */
+
+  // Initialize server mode toggle UI
+  updateServerModeUI();
+
+  var serverTogglePill = $("server-toggle");
+  if (serverTogglePill) serverTogglePill.addEventListener("click", toggleServerMode);
+
+  var authServerToggleBtn = $("auth-server-toggle-btn");
+  if (authServerToggleBtn) authServerToggleBtn.addEventListener("click", toggleServerMode);
 
   // Start in signed-out state
   applyAuthState(false);

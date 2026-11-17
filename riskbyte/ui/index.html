@@ -32,6 +32,10 @@
       </div>
 
       <div class="titlebar-right">
+        <button id="server-toggle" class="status-pill server-toggle-pill" type="button" title="Toggle between Live Backend Server and In-Browser Standalone Simulated Server">
+          <span class="server-status-dot online"></span>
+          <span id="server-status-label">Server: Live</span>
+        </button>
         <span id="lic" class="status-pill lic-pill">Checking...</span>
         <span id="stats" class="status-pill stats-pill"></span>
         <button id="out" class="btn-ghost titlebar-signout" title="Sign out of SOC console">
@@ -111,6 +115,15 @@
             <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
+          </button>
+        </div>
+
+        <div class="auth-server-switch-wrap">
+          <div class="auth-server-switch-label">Backend Connection</div>
+          <button id="auth-server-toggle-btn" class="auth-server-btn" type="button">
+            <span class="server-status-dot online"></span>
+            <span id="auth-server-mode-text">Connected: Live Server (Port 8080)</span>
+            <span class="auth-server-switch-hint">Switch to In-Browser Sim</span>
           </button>
         </div>
 
