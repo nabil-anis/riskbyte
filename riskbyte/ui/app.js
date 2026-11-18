@@ -1,6 +1,23 @@
 (function () {
   "use strict";
 
+  /* ── Tactile Motion & Haptic Feedback ────────────────── */
+  function haptic(pattern) {
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      try {
+        navigator.vibrate(pattern);
+      } catch (e) {}
+    }
+  }
+
+  var HAPTIC = {
+    tick: 6,
+    light: 10,
+    medium: 18,
+    success: [12, 45, 20],
+    error: [30, 60, 30]
+  };
+
   /* ── Helpers ─────────────────────────────────────────── */
   var $ = function (id) { return document.getElementById(id); };
   var token = sessionStorage.getItem("rb_token") || "";
@@ -24,6 +41,27 @@
            " (" + d.toLocaleDateString([], { month: "short", day: "numeric" }) + ")";
   }
 
+  /* ── Dynamic Island Pill Updater ─────────────────────── */
+  function updateDynamicIsland(title, msg, isAlert) {
+    var island = $("dynamic-island");
+    var tEl = $("island-title");
+    var mEl = $("island-msg");
+    var dot = $("island-status-dot");
+
+    if (tEl) tEl.textContent = title || "Riskbyte";
+    if (mEl) mEl.textContent = msg || (serverMode === "live" ? "Live SOC Engine" : "Standalone Sim");
+    if (island) {
+      if (isAlert) {
+        island.classList.add("alert-mode");
+      } else {
+        island.classList.remove("alert-mode");
+      }
+    }
+    if (dot) {
+      dot.className = "island-dot " + (serverMode === "sim" ? "sim" : "");
+    }
+  }
+
   /* ── In-Browser Simulated Server (Mock Backend) ──────── */
   var simData = {
     stats: {
@@ -37,7 +75,7 @@
     },
     license: {
       state: "dev",
-      plan: "Standalone Edition",
+      plan: "Standalone Glass",
       days_left: 365,
       features: ["all"],
       message: ""
@@ -184,12 +222,14 @@
           var id = parseInt(cleanPath.split("/")[3]);
           var alert = simData.alerts.find(function (a) { return a.id === id; });
           if (alert) alert.status = "approved";
+          haptic(HAPTIC.success);
           return resolve({ result: "Action approved and dispatched to containment engine" });
         }
         if (cleanPath.startsWith("/api/alerts/") && cleanPath.endsWith("/dismiss")) {
           var id = parseInt(cleanPath.split("/")[3]);
           var alert = simData.alerts.find(function (a) { return a.id === id; });
           if (alert) alert.status = "dismissed";
+          haptic(HAPTIC.light);
           return resolve({ result: "Alert marked as dismissed" });
         }
         if (cleanPath.startsWith("/api/alerts/")) {
@@ -201,7 +241,7 @@
         if (cleanPath === "/api/cases") return resolve(simData.cases);
         if (cleanPath === "/api/audit") return resolve(simData.audit);
         reject(new Error("Endpoint not found: " + path));
-      }, 60);
+      }, 50);
     });
   }
 
@@ -228,7 +268,7 @@
 
         if (!r.ok) {
           if (r.status === 404) {
-            throw new Error("API 404 Not Found. Backend server is not running or route not found. Toggle server mode to 'In-Browser Sim' to run standalone.");
+            throw new Error("API route not found (404). Toggle server mode to 'In-Browser Sim' to run standalone without a terminal.");
           }
           throw new Error((j && j.error) ? j.error : ("Server error (" + r.status + ")"));
         }
@@ -236,7 +276,7 @@
       });
     }).catch(function (err) {
       if (err instanceof TypeError && err.message.toLowerCase().indexOf("fetch") !== -1) {
-        throw new Error("Cannot connect to server. Switch server mode to 'In-Browser Sim' to run standalone without a terminal.");
+        throw new Error("Cannot connect to server. Switch server mode to 'In-Browser Sim' to run standalone.");
       }
       throw err;
     });
@@ -245,27 +285,24 @@
   /* ── Server Mode Toggle UI ───────────────────────────── */
   function updateServerModeUI() {
     var label = $("server-status-label");
-    var dot = document.querySelector("#server-toggle .server-status-dot");
-    var authDot = document.querySelector("#auth-server-toggle-btn .server-status-dot");
     var authModeText = $("auth-server-mode-text");
     var authHint = document.querySelector(".auth-server-switch-hint");
 
     if (serverMode === "live") {
-      if (label) label.textContent = "Server: Live";
-      if (dot) { dot.className = "server-status-dot online"; }
-      if (authDot) { authDot.className = "server-status-dot online"; }
+      if (label) label.textContent = "Live";
       if (authModeText) authModeText.textContent = "Server: Live Backend (Port 8080)";
       if (authHint) authHint.textContent = "Switch to In-Browser Sim";
+      updateDynamicIsland("Riskbyte", "Live SOC Engine", false);
     } else {
-      if (label) label.textContent = "Server: Standalone Sim";
-      if (dot) { dot.className = "server-status-dot sim"; }
-      if (authDot) { authDot.className = "server-status-dot sim"; }
+      if (label) label.textContent = "Simulated";
       if (authModeText) authModeText.textContent = "Server: In-Browser Sim (No terminal needed)";
       if (authHint) authHint.textContent = "Switch to Live Server";
+      updateDynamicIsland("Riskbyte", "Standalone Simulation", false);
     }
   }
 
   function toggleServerMode() {
+    haptic(HAPTIC.medium);
     serverMode = (serverMode === "live") ? "sim" : "live";
     localStorage.setItem("rb_server_mode", serverMode);
     updateServerModeUI();
@@ -284,15 +321,16 @@
     if (authed) {
       if (login) login.style.display = "none";
       if (app) app.style.display = "flex";
-      if (out) out.style.display = "";
+      if (out) out.style.display = "inline-flex";
     } else {
-      if (login) login.style.display = "";
+      if (login) login.style.display = "flex";
       if (app) app.style.display = "none";
       if (out) out.style.display = "none";
     }
   }
 
   function signOut() {
+    haptic(HAPTIC.light);
     sessionStorage.removeItem("rb_token");
     token = "";
     clearInterval(timer);
@@ -312,12 +350,14 @@
     if (!lerr) return;
     lerr.textContent = msg || "";
     lerr.style.display = msg ? "block" : "none";
+    if (msg) haptic(HAPTIC.error);
   }
 
   function performLogin(val, clickedBtn) {
     var raw = (val || "").trim();
     if (!raw) return;
 
+    haptic(HAPTIC.medium);
     showError("");
     token = raw;
 
@@ -330,6 +370,7 @@
       .then(function () {
         sessionStorage.setItem("rb_token", token);
         showError("");
+        haptic(HAPTIC.success);
         start();
       })
       .catch(function (err) {
@@ -372,7 +413,7 @@
     }
 
     alerts.forEach(function (a) {
-      var item = el("div", "alert-item s-" + a.severity + (cur === a.id ? " on" : ""));
+      var item = el("div", "alert-item tactile-btn s-" + a.severity + (cur === a.id ? " on" : ""));
 
       var hdr = el("div", "alert-item-header");
       hdr.appendChild(el("span", "alert-title", a.title));
@@ -390,6 +431,7 @@
       item.appendChild(statusBadge);
 
       item.addEventListener("click", function () {
+        haptic(HAPTIC.tick);
         cur = a.id;
         loadDetail();
         document.querySelectorAll(".alert-item").forEach(function (ai) {
@@ -417,7 +459,8 @@
       if (!d) return;
       d.replaceChildren();
 
-      var headCard = el("div", "detail-header-card");
+      // 1. Header Card
+      var headCard = el("div", "glass-inner-surface detail-header-card");
       var topRow = el("div", "detail-top-row");
       topRow.appendChild(el("span", "detail-rule-tag", "Rule: " + a.rule_id));
       var sev = el("span", "severity-pill sev-" + a.severity, a.severity.toUpperCase());
@@ -435,7 +478,8 @@
       headCard.appendChild(subMeta);
       d.appendChild(headCard);
 
-      var triageCard = el("div", "triage-card");
+      // 2. AI Triage Card
+      var triageCard = el("div", "glass-inner-surface triage-card");
       var tHdr = el("div", "triage-header");
       var headingGroup = el("div", "triage-heading-group");
       headingGroup.appendChild(el("span", "triage-title", "Autonomous Triage & Investigation"));
@@ -479,7 +523,8 @@
       }
       d.appendChild(triageCard);
 
-      var actCard = el("div", "action-card");
+      // 3. Response Action Gate
+      var actCard = el("div", "glass-inner-surface action-card");
       var actHeader = el("div", "action-card-header");
       actHeader.appendChild(el("span", "action-card-title", "Analyst Approval Gate · Response Action"));
       actCard.appendChild(actHeader);
@@ -503,8 +548,8 @@
 
       var open = a.status === "triaged" || a.status === "failed";
       var btnRow = el("div", "action-buttons-row");
-      var okBtn = el("button", "btn-approve", "Approve Action");
-      var noBtn = el("button", "btn-dismiss", "Dismiss Alert");
+      var okBtn = el("button", "btn-approve tactile-btn", "Approve Action");
+      var noBtn = el("button", "btn-dismiss tactile-btn", "Dismiss Alert");
       okBtn.type = "button";
       noBtn.type = "button";
       okBtn.disabled = !(a.status === "triaged" && a.proposed_action);
@@ -520,7 +565,8 @@
       actCard.appendChild(msg);
       d.appendChild(actCard);
 
-      var termCard = el("div", "terminal-card");
+      // 4. Raw Telemetry Terminal
+      var termCard = el("div", "glass-inner-surface terminal-card");
       var termHdr = el("div", "terminal-header");
       var termTitle = el("div", "terminal-title");
       termTitle.appendChild(el("span", null, "raw_telemetry_events.log (" + (a.events ? a.events.length : 0) + " events)"));
@@ -552,6 +598,7 @@
 
   /* ── Approve / Dismiss Action ────────────────────────── */
   function act(kind) {
+    haptic(HAPTIC.medium);
     api("/api/alerts/" + cur + "/" + kind, "POST")
       .then(function (r) {
         loadDetail();
@@ -562,7 +609,7 @@
             m.className = "action-result-msg visible";
             m.textContent = "Action executed: " + (r.result || r.status || "Success");
           }
-        }, 150);
+        }, 120);
       })
       .catch(function (e) {
         var m = $("msg");
@@ -594,7 +641,7 @@
       emptyTd.colSpan = head.length;
       emptyTd.textContent = "No records found.";
       emptyTd.style.textAlign = "center";
-      emptyTd.style.color = "var(--text-muted)";
+      emptyTd.style.color = "var(--text-tertiary)";
       emptyTd.style.padding = "24px";
       emptyTr.appendChild(emptyTd);
       tbody.appendChild(emptyTr);
@@ -619,14 +666,14 @@
       if (licEl) {
         licEl.textContent = (l.state || "dev").toUpperCase() +
           (l.plan ? " · " + l.plan : "") +
-          (l.days_left != null ? " · " + l.days_left + "d left" : "");
+          (l.days_left != null ? " · " + l.days_left + "d" : "");
       }
       var b = $("banner");
       if (b) {
         if (l.state === "active" || l.state === "dev") {
           b.style.display = "none";
         } else {
-          b.style.display = "";
+          b.style.display = "flex";
           b.textContent = l.message || "";
         }
       }
@@ -683,18 +730,37 @@
   var outBtn = $("out");
   if (outBtn) outBtn.addEventListener("click", signOut);
 
-  // Activity tabs switching
+  // Unified Tab Switching Helper (Desktop Segmented Pill + Mobile Bottom Bar)
+  function switchTab(targetTab) {
+    haptic(HAPTIC.light);
+    document.querySelectorAll(".tabs-group button").forEach(function (btn) {
+      btn.classList.toggle("on", btn.dataset.t === targetTab);
+    });
+    ["alerts", "cases", "audit"].forEach(function (n) {
+      var v = $("v-" + n);
+      if (v) v.style.display = (n === targetTab) ? "" : "none";
+    });
+  }
+
   document.querySelectorAll(".tabs-group button").forEach(function (b) {
     b.addEventListener("click", function () {
-      document.querySelectorAll(".tabs-group button").forEach(function (x) {
-        x.classList.toggle("on", x === b);
-      });
-      ["alerts", "cases", "audit"].forEach(function (n) {
-        var v = $("v-" + n);
-        if (v) v.style.display = (n === b.dataset.t) ? "" : "none";
-      });
+      if (b.dataset.t) switchTab(b.dataset.t);
     });
   });
+
+  // Mobile Bottom Bar Auto-hide on Scroll Down, Reveal on Scroll Up
+  var lastScrollY = window.scrollY;
+  var bottomTabBar = document.querySelector(".mobile-floating-tabbar");
+  window.addEventListener("scroll", function () {
+    if (!bottomTabBar) return;
+    var currentScrollY = window.scrollY;
+    if (currentScrollY > lastScrollY && currentScrollY > 60) {
+      bottomTabBar.classList.add("tabbar-hidden");
+    } else {
+      bottomTabBar.classList.remove("tabbar-hidden");
+    }
+    lastScrollY = currentScrollY;
+  }, { passive: true });
 
   // Auto-login if token already in sessionStorage
   if (token) {

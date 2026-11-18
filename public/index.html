@@ -2,73 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Riskbyte SOC · Cybersecurity Command Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Riskbyte SOC · Autonomous Command Center</title>
   <link rel="stylesheet" href="/static/app.css">
 </head>
-<body class="macos-theme">
-  <!-- Main IDE Window Container -->
-  <div class="window-frame">
-    <!-- Clean VS Code / macOS Titlebar -->
-    <header class="titlebar">
-      <div class="titlebar-left">
-        <div class="app-brand">
-          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+<body>
+  <!-- Canvas Ambient Lighting Orbs (-z-10) -->
+  <div class="ambient-lighting" aria-hidden="true">
+    <div class="ambient-orb ambient-orb-1"></div>
+    <div class="ambient-orb ambient-orb-2"></div>
+    <div class="ambient-orb ambient-orb-3"></div>
+  </div>
+
+  <div class="app-shell">
+    <!-- Signature Component: Dynamic Island Style Live Status Pill -->
+    <div class="dynamic-island-container">
+      <div id="dynamic-island" class="dynamic-island-pill" role="status">
+        <div class="island-lead">
+          <svg class="island-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             <path d="M9 12l2 2 4-4"/>
           </svg>
-          <span class="brand-name">Risk<b>byte</b></span>
-          <span class="brand-divider">/</span>
-          <span class="brand-module">soc_agent.workspace</span>
+          <span id="island-title">Riskbyte</span>
+        </div>
+        <div class="island-center">
+          <span id="island-status-dot" class="island-dot"></span>
+          <span id="island-msg" class="island-stats-text">Live SOC Engine</span>
+        </div>
+        <div class="island-trailing">
+          <button id="server-toggle" class="island-pill-btn tactile-btn" type="button" title="Toggle between Live Backend Server and In-Browser Standalone Simulated Server">
+            <span id="server-status-label">Live</span>
+          </button>
+          <button id="out" class="island-pill-btn tactile-btn" type="button" title="Sign out" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
         </div>
       </div>
+    </div>
 
-      <div class="titlebar-center">
-        <div class="student-pill">
-          <span class="student-tag">Course Project</span>
-          <span class="student-name">Muhammad Nabil (F23CSC009)</span>
-          <span class="student-course">&bull; Essentials of Cybersecurity</span>
-        </div>
+    <!-- Minimal Sticky Header -->
+    <header class="ios-header">
+      <div class="header-brand">
+        <span>Risk<b>byte</b></span>
+        <span class="header-brand-sub">soc_agent.workspace</span>
       </div>
 
-      <div class="titlebar-right">
-        <button id="server-toggle" class="status-pill server-toggle-pill" type="button" title="Toggle between Live Backend Server and In-Browser Standalone Simulated Server">
-          <span class="server-status-dot online"></span>
-          <span id="server-status-label">Server: Live</span>
-        </button>
-        <span id="lic" class="status-pill lic-pill">Checking...</span>
-        <span id="stats" class="status-pill stats-pill"></span>
-        <button id="out" class="btn-ghost titlebar-signout" title="Sign out of SOC console">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-          <span>Sign out</span>
-        </button>
+      <div class="header-student">
+        <span>Course Project &bull;</span>
+        <strong>Muhammad Nabil (F23CSC009)</strong>
+        <span>&bull; Essentials of Cybersecurity</span>
+      </div>
+
+      <div class="header-actions">
+        <span id="lic" class="island-pill-btn" style="cursor:default">Checking...</span>
+        <span id="stats" class="island-pill-btn tabular-nums" style="cursor:default"></span>
       </div>
     </header>
 
+    <!-- Desktop / Tablet Centered Frosted Segmented Navigation -->
+    <div class="nav-segmented-wrapper">
+      <nav class="nav-segmented-control tabs-group" aria-label="Sections">
+        <button data-t="alerts" class="tab-btn on tactile-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Alerts &amp; Triage</span>
+          <span id="badge-alerts-count" class="tab-badge tabular-nums">0</span>
+        </button>
+
+        <button data-t="cases" class="tab-btn tactile-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+          </svg>
+          <span>Incident Cases</span>
+        </button>
+
+        <button data-t="audit" class="tab-btn tactile-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <circle cx="12" cy="11" r="3"/>
+          </svg>
+          <span>Audit Trail</span>
+        </button>
+      </nav>
+    </div>
+
     <!-- ============================================= -->
-    <!-- AUTH SCREEN — Role picker (no token input)    -->
+    <!-- AUTH SCREEN — Liquid Glass Role Picker        -->
     <!-- ============================================= -->
     <main id="login" class="auth-screen">
-      <div class="auth-picker">
-        <div class="auth-picker-header">
-          <div class="auth-shield-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
-          <h1 class="auth-picker-title">Riskbyte <span>SOC</span></h1>
-          <p class="auth-picker-sub">Select a role to enter the console</p>
+      <div class="glass-card auth-picker-glass">
+        <div class="auth-shield-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
         </div>
+        <h1 class="auth-title">Riskbyte <span>SOC</span></h1>
+        <p class="auth-sub">Select your security role to enter the console</p>
 
         <div id="lerr" class="auth-error" role="alert"></div>
 
-        <div class="auth-role-buttons">
-          <button type="button" class="auth-role-btn role-analyst" data-token="dev-analyst">
+        <div class="auth-role-stack">
+          <button type="button" class="auth-role-btn role-analyst tactile-btn" data-token="dev-analyst">
             <div class="auth-role-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -76,15 +119,15 @@
               </svg>
             </div>
             <div class="auth-role-info">
-              <span class="auth-role-name">Analyst</span>
-              <span class="auth-role-desc">View alerts, triage, approve actions</span>
+              <span class="auth-role-name">Security Analyst</span>
+              <span class="auth-role-desc">Triage incidents, investigate alerts, approve response</span>
             </div>
             <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           </button>
 
-          <button type="button" class="auth-role-btn role-admin" data-token="dev-admin">
+          <button type="button" class="auth-role-btn role-admin tactile-btn" data-token="dev-admin">
             <div class="auth-role-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -92,15 +135,15 @@
               </svg>
             </div>
             <div class="auth-role-info">
-              <span class="auth-role-name">Admin</span>
-              <span class="auth-role-desc">Full access, configuration, audit</span>
+              <span class="auth-role-name">SOC Administrator</span>
+              <span class="auth-role-desc">Full telemetry governance, engine config, audit verification</span>
             </div>
             <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           </button>
 
-          <button type="button" class="auth-role-btn role-ingest" data-token="dev-ingest">
+          <button type="button" class="auth-role-btn role-ingest tactile-btn" data-token="dev-ingest">
             <div class="auth-role-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="16 16 12 12 8 16"/>
@@ -109,8 +152,8 @@
               </svg>
             </div>
             <div class="auth-role-info">
-              <span class="auth-role-name">Ingest</span>
-              <span class="auth-role-desc">Push events, telemetry pipeline</span>
+              <span class="auth-role-name">Telemetry Ingest</span>
+              <span class="auth-role-desc">Event ingestion pipeline, agent syslog daemon</span>
             </div>
             <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
@@ -119,10 +162,12 @@
         </div>
 
         <div class="auth-server-switch-wrap">
-          <div class="auth-server-switch-label">Backend Connection</div>
-          <button id="auth-server-toggle-btn" class="auth-server-btn" type="button">
-            <span class="server-status-dot online"></span>
-            <span id="auth-server-mode-text">Connected: Live Server (Port 8080)</span>
+          <div class="auth-server-switch-label">Backend Connection Mode</div>
+          <button id="auth-server-toggle-btn" class="auth-server-btn tactile-btn" type="button">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="island-dot"></span>
+              <span id="auth-server-mode-text">Server: Live Backend (Port 8080)</span>
+            </div>
             <span class="auth-server-switch-hint">Switch to In-Browser Sim</span>
           </button>
         </div>
@@ -133,50 +178,16 @@
       </div>
     </main>
 
-    <!-- Main Workspace Application -->
-    <main id="app" class="app-workspace">
+    <!-- ============================================= -->
+    <!-- MAIN WORKSPACE APPLICATION                     -->
+    <!-- ============================================= -->
+    <main id="app" class="app-workspace" style="display:none">
       <div id="banner" class="license-banner"></div>
-
-      <!-- Activity Navigation Bar -->
-      <nav class="activity-bar">
-        <div class="tabs-group">
-          <button data-t="alerts" class="tab-btn on">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            <span>Alerts &amp; Triage</span>
-            <span id="badge-alerts-count" class="tab-badge">0</span>
-          </button>
-
-          <button data-t="cases" class="tab-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-            </svg>
-            <span>Incident Cases</span>
-          </button>
-
-          <button data-t="audit" class="tab-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <circle cx="12" cy="11" r="3"/>
-            </svg>
-            <span>Audit Trail (Hash-Chained)</span>
-          </button>
-        </div>
-
-        <div class="workspace-meta">
-          <span class="meta-dot"></span>
-          <span class="meta-label">SOC Engine: Active</span>
-        </div>
-      </nav>
 
       <!-- View 1: Alerts Master-Detail Split Pane -->
       <section id="v-alerts" class="ide-split-pane">
         <!-- Left Pane: Alerts Explorer -->
-        <div class="explorer-pane">
+        <div class="glass-card explorer-pane">
           <div class="pane-header">
             <div class="pane-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -187,16 +198,16 @@
                 <line x1="3" y1="12" x2="3.01" y2="12"></line>
                 <line x1="3" y1="18" x2="3.01" y2="18"></line>
               </svg>
-              <span>Security Alerts</span>
+              <span>Security Telemetry Alerts</span>
             </div>
-            <div id="alerts-count-label" class="pane-counter">0 open</div>
+            <div id="alerts-count-label" class="pane-counter tabular-nums">0 open</div>
           </div>
 
           <div id="list" class="alerts-list"></div>
         </div>
 
         <!-- Right Pane: Alert Inspector & AI Triage View -->
-        <div class="inspector-pane">
+        <div class="glass-card inspector-pane">
           <div id="det" class="inspector-content">
             <div class="empty-inspector">
               <div class="empty-icon">
@@ -210,7 +221,7 @@
                 </svg>
               </div>
               <h3>No Alert Selected</h3>
-              <p>Select an alert from the left explorer pane to inspect the autonomous AI triage analysis, correlated threat intelligence, and approve proposed response actions.</p>
+              <p>Select any security alert from the explorer to inspect AI triage verdicts, threat indicators, and approve automated response actions.</p>
             </div>
           </div>
         </div>
@@ -218,27 +229,27 @@
 
       <!-- View 2: Cases Table -->
       <section id="v-cases" class="data-table-wrapper" style="display:none">
-        <div class="table-card">
+        <div class="glass-card table-card">
           <div class="table-card-header">
             <div>
-              <h2>Incident Cases</h2>
-              <p>Automated grouping of correlated alerts by host or compromised user account.</p>
+              <h2>Correlated Incident Cases</h2>
+              <p>Entity-based grouping of high-severity alerts by affected host or account.</p>
             </div>
             <div class="card-tag">Entity Grouping</div>
           </div>
           <div class="table-responsive">
-            <table id="ct" class="macos-table"></table>
+            <table id="ct" class="macos-table tabular-nums"></table>
           </div>
         </div>
       </section>
 
       <!-- View 3: Audit Trail Table -->
       <section id="v-audit" class="data-table-wrapper" style="display:none">
-        <div class="table-card">
+        <div class="glass-card table-card">
           <div class="table-card-header">
             <div>
               <h2>Cryptographic Audit Trail</h2>
-              <p>SHA-256 hash-chained, tamper-evident record of all system events, ingest operations, and analyst approvals.</p>
+              <p>SHA-256 hash-chained immutable ledger of system actions and analyst approvals.</p>
             </div>
             <div id="audit-integrity-badge" class="audit-badge intact">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -249,29 +260,39 @@
             </div>
           </div>
           <div class="table-responsive">
-            <table id="at" class="macos-table audit-table"></table>
+            <table id="at" class="macos-table audit-table tabular-nums"></table>
           </div>
         </div>
       </section>
     </main>
 
-    <!-- Statusbar -->
-    <footer class="statusbar">
-      <div class="status-left">
-        <span class="status-item"><span class="status-badge-dot"></span> Riskbyte SOC Daemon</span>
-        <span class="status-separator">|</span>
-        <span class="status-item">Port: 8080 (HTTP)</span>
-        <span class="status-separator">|</span>
-        <span class="status-item">Syslog: 5514 (UDP)</span>
-      </div>
-      <div class="status-right">
-        <span class="status-item">Analyst: Muhammad Nabil (F23CSC009)</span>
-        <span class="status-separator">|</span>
-        <span class="status-item">Fail-Closed: Active</span>
-        <span class="status-separator">|</span>
-        <span class="status-item">UTF-8</span>
-      </div>
-    </footer>
+    <!-- Mobile Detached Floating Bottom Tab Bar (< 840px) -->
+    <nav class="mobile-floating-tabbar tabs-group" aria-label="Mobile Navigation">
+      <button data-t="alerts" class="mobile-tab-btn on tactile-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Alerts</span>
+      </button>
+
+      <button data-t="cases" class="mobile-tab-btn tactile-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+        <span>Cases</span>
+      </button>
+
+      <button data-t="audit" class="mobile-tab-btn tactile-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <circle cx="12" cy="11" r="3"/>
+        </svg>
+        <span>Audit</span>
+      </button>
+    </nav>
   </div>
 
   <script src="/static/app.js"></script>
