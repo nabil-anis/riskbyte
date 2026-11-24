@@ -47,15 +47,15 @@
 
 html, body {
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
+  height: 100dvh;
   background-color: var(--bg-oled);
   color: var(--text-primary);
   font-family: var(--font-ios);
   font-size: 14px;
   line-height: 1.45;
   letter-spacing: -0.015em;
-  overflow-x: hidden;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -107,12 +107,12 @@ html, body {
 }
 
 /* Springy Tactile Feedback */
-.tactile-btn, .tab-btn, .auth-role-btn, .btn-approve, .btn-dismiss, .alert-item, .auth-server-btn, .island-pill-btn {
+.tactile-btn, .tab-btn, .auth-role-btn, .btn-approve, .btn-dismiss, .alert-item, .auth-server-btn, .island-pill-btn, .header-chip, .header-icon-btn, .demo-attack-btn, .demo-reset-btn {
   transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   user-select: none;
 }
 
-.tactile-btn:active, .tab-btn:active, .auth-role-btn:active, .btn-approve:active, .btn-dismiss:active, .alert-item:active, .auth-server-btn:active, .island-pill-btn:active {
+.tactile-btn:active, .tab-btn:active, .auth-role-btn:active, .btn-approve:active, .btn-dismiss:active, .alert-item:active, .auth-server-btn:active, .island-pill-btn:active, .header-icon-btn:active, .demo-attack-btn:active, .demo-reset-btn:active {
   transform: scale(0.96) !important;
 }
 
@@ -135,75 +135,99 @@ html, body {
 /* Full Bleed App Shell */
 .app-shell {
   width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+  overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════════════════
-   1. SIGNATURE COMPONENT: TOP DYNAMIC ISLAND PILL
+   1. INTEGRATED MODERN HEADER (Glass Navigation Bar)
    ═══════════════════════════════════════════════════════ */
-.dynamic-island-container {
-  position: sticky;
-  top: env(safe-area-inset-top, 10px);
-  padding: 10px 16px 6px;
-  z-index: 100;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  pointer-events: none;
-}
-
-.dynamic-island-pill {
-  pointer-events: auto;
-  background: #000000;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  border-radius: var(--r-pill);
-  height: 38px;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  max-width: 90vw;
-}
-
-.dynamic-island-pill.alert-mode {
-  border-color: rgba(255, 69, 58, 0.4);
-  box-shadow: 0 10px 28px rgba(255, 69, 58, 0.2);
-}
-
-.island-lead {
+.ios-header {
+  height: 54px;
+  background: rgba(14, 14, 18, 0.82);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: -0.02em;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+  z-index: 50;
+  gap: 16px;
 }
 
-.island-icon {
-  width: 16px;
-  height: 16px;
-  color: var(--accent-blue);
+.header-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
 }
 
-.island-center {
+.header-brand {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  user-select: none;
+}
+
+.header-logo-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--accent-blue);
+}
+
+.header-brand-name b {
+  color: var(--accent-teal);
+  font-weight: 600;
+}
+
+.header-brand-sub {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent-blue);
+  background: rgba(10, 132, 255, 0.12);
+  border: 1px solid rgba(10, 132, 255, 0.3);
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+}
+
+/* Integrated Dynamic Island Status Pill inside Topbar */
+.dynamic-island-pill {
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-pill);
+  height: 30px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
+
+.dynamic-island-pill.alert-mode {
+  border-color: rgba(255, 69, 58, 0.45);
+  background: rgba(255, 69, 58, 0.12);
+  box-shadow: 0 0 14px rgba(255, 69, 58, 0.25);
 }
 
 .island-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--accent-green);
   box-shadow: 0 0 8px var(--accent-green);
+  flex-shrink: 0;
 }
 
 .island-dot.sim {
@@ -215,86 +239,41 @@ html, body {
   font-size: 11.5px;
   color: var(--text-secondary);
   font-weight: 500;
-}
-
-.island-trailing {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  white-space: nowrap;
 }
 
 .island-pill-btn {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
   border-radius: var(--r-pill);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .island-pill-btn:hover {
   background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
-.island-pill-btn svg {
-  width: 12px;
-  height: 12px;
-}
-
-/* ═══════════════════════════════════════════════════════
-   2. MINIMAL STICKY HEADER (Glass Strip)
-   ═══════════════════════════════════════════════════════ */
-.ios-header {
-  height: 52px;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  flex-shrink: 0;
-  z-index: 50;
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.025em;
-}
-
-.header-brand b {
-  color: var(--accent-teal);
-  font-weight: 600;
-}
-
-.header-brand-sub {
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  font-weight: 400;
-}
-
+/* Student Project Accreditation Pill */
 .header-student {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--glass-chip);
-  border: 1px solid var(--glass-border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-pill);
-  padding: 3px 12px;
+  padding: 4px 14px;
   font-size: 12px;
   color: var(--text-secondary);
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .header-student strong {
@@ -306,15 +285,48 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.header-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
 }
 
 /* ═══════════════════════════════════════════════════════
-   3. ADAPTIVE NAVIGATION (Segmented Control Pill)
+   2. ADAPTIVE NAVIGATION (Segmented Control Pill)
    ═══════════════════════════════════════════════════════ */
 .nav-segmented-wrapper {
   display: flex;
   justify-content: center;
-  padding: 14px 20px 8px;
+  padding: 8px 16px 12px;
+  flex-shrink: 0;
   z-index: 40;
 }
 
@@ -641,8 +653,9 @@ html, body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0 20px 20px;
+  padding: 0 20px 16px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .license-banner {
@@ -664,6 +677,8 @@ html, body {
   grid-template-columns: 380px 1fr;
   gap: 16px;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Left Pane: Alert Explorer */
@@ -671,9 +686,8 @@ html, body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
-  height: calc(100vh - 165px);
-  height: calc(100dvh - 165px);
 }
 
 .pane-header {
@@ -859,15 +873,17 @@ html, body {
 /* Right Pane: Inspector & Triage */
 .inspector-pane {
   overflow-y: auto;
-  height: calc(100vh - 165px);
-  height: calc(100dvh - 165px);
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .inspector-content {
-  padding: 22px;
+  padding: 24px 24px 64px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .empty-inspector {
@@ -1263,16 +1279,33 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   7. TABLES (Cases & Audit)
+   7. TABLES (Cases & Audit) & DEMO LAB CONTAINER
    ═══════════════════════════════════════════════════════ */
 .data-table-wrapper {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-card {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 0;
   overflow: hidden;
+}
+
+.demo-lab-card {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 28px 64px;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-card-header {
@@ -1281,6 +1314,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .table-card-header h2 {
@@ -1333,6 +1367,9 @@ html, body {
 }
 
 .table-responsive {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: auto;
 }
 
@@ -1344,7 +1381,12 @@ html, body {
 }
 
 .macos-table th {
-  background: rgba(255, 255, 255, 0.02);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(22, 22, 26, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   color: var(--text-tertiary);
   font-size: 11px;
   font-weight: 600;
@@ -1430,9 +1472,29 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   9. RESPONSIVE BREAKPOINTS (Mobile Full-Bleed & Bottom Sheet)
+   9. RESPONSIVE BREAKPOINTS (Adaptive Desktop & Mobile)
    ═══════════════════════════════════════════════════════ */
-@media (max-width: 840px) {
+@media (max-width: 1200px) {
+  .header-student .student-course,
+  .header-student .student-label {
+    display: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .header-student {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+  #lic, #stats {
+    display: none !important;
+  }
+  .ide-split-pane {
+    grid-template-columns: 320px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
   .nav-segmented-wrapper {
     display: none; /* Replaced by bottom floating tab bar */
   }
@@ -1441,35 +1503,33 @@ html, body {
     display: flex;
   }
 
-  .header-brand-sub, .header-student {
+  .header-student {
     display: none;
   }
 
   .app-workspace {
-    padding: 0 12px 90px;
+    padding: 0 10px 84px;
+    overflow-y: auto;
   }
 
   .ide-split-pane {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
     gap: 14px;
   }
 
   .explorer-pane {
-    height: auto;
-    max-height: 380px;
+    height: 320px;
+    flex-shrink: 0;
   }
 
   .inspector-pane {
     height: auto;
   }
 
-  /* Bottom sheet style for Inspector on Mobile */
-  .inspector-sheet-mode {
-    border-radius: 28px 28px 0 0;
-  }
-
   .inspector-content {
-    padding: 16px;
+    padding: 18px 16px 36px;
   }
 }
 
@@ -1661,7 +1721,8 @@ html, body {
 /* ── Live Step-by-Step Panel ─────────────────────────────────── */
 .demo-execution-panel {
   margin-top: 24px;
-  padding: 24px;
+  margin-bottom: 40px;
+  padding: 26px;
   background: var(--glass-primary);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-card);
@@ -1796,7 +1857,8 @@ html, body {
 
 .what-happened-box {
   margin-top: 24px;
-  padding: 20px;
+  margin-bottom: 30px;
+  padding: 20px 24px;
   background: rgba(10, 132, 255, 0.07);
   border: 1px solid rgba(10, 132, 255, 0.28);
   border-radius: var(--r-inner);

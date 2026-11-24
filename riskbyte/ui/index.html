@@ -15,46 +15,32 @@
   </div>
 
   <div class="app-shell">
-    <!-- Signature Component: Dynamic Island Style Live Status Pill -->
-    <div class="dynamic-island-container">
-      <div id="dynamic-island" class="dynamic-island-pill" role="status">
-        <div class="island-lead">
-          <svg class="island-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Modern Sleek Unified Header -->
+    <header class="ios-header">
+      <div class="header-brand-group">
+        <div class="header-brand">
+          <svg class="header-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             <path d="M9 12l2 2 4-4"/>
           </svg>
-          <span id="island-title">Riskbyte</span>
+          <span class="header-brand-name">Risk<b>byte</b></span>
+          <span class="header-brand-sub">SOC</span>
         </div>
-        <div class="island-center">
+
+        <!-- Integrated Dynamic Island Status Pill -->
+        <div id="dynamic-island" class="dynamic-island-pill" role="status">
           <span id="island-status-dot" class="island-dot"></span>
           <span id="island-msg" class="island-stats-text">Live SOC Engine</span>
-        </div>
-        <div class="island-trailing">
           <button id="server-toggle" class="island-pill-btn tactile-btn" type="button" title="Toggle between Live Backend Server and In-Browser Standalone Simulated Server">
             <span id="server-status-label">Live</span>
           </button>
-          <button id="out" class="island-pill-btn tactile-btn" type="button" title="Sign out" style="display:none">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-          </button>
         </div>
-      </div>
-    </div>
-
-    <!-- Minimal Sticky Header -->
-    <header class="ios-header">
-      <div class="header-brand">
-        <span>Risk<b>byte</b></span>
-        <span class="header-brand-sub">soc_agent.workspace</span>
       </div>
 
       <div class="header-student">
-        <span>Course Project &bull;</span>
+        <span class="student-label">Course Project &bull;</span>
         <strong>Muhammad Nabil (F23CSC009)</strong>
-        <span>&bull; Essentials of Cybersecurity</span>
+        <span class="student-course">&bull; Essentials of Cybersecurity</span>
       </div>
 
       <div class="header-actions">
@@ -62,8 +48,15 @@
           <span id="role-name-text">Security Analyst</span>
           <svg style="width:12px;height:12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
-        <span id="lic" class="island-pill-btn" style="cursor:default">Checking...</span>
-        <span id="stats" class="island-pill-btn tabular-nums" style="cursor:default"></span>
+        <span id="lic" class="header-chip" style="cursor:default">Checking...</span>
+        <span id="stats" class="header-chip tabular-nums" style="cursor:default"></span>
+        <button id="out" class="header-icon-btn tactile-btn" type="button" title="Sign out" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -305,7 +298,7 @@
 
       <!-- ANALYST VIEW 3: Interactive Attack Simulation Lab (Demo Tab) -->
       <section id="v-demo" class="data-table-wrapper" style="display:none">
-        <div class="glass-card table-card">
+        <div class="glass-card demo-lab-card">
           <div class="demo-header-bar">
             <div class="demo-title-group">
               <h2>SOC Attack Simulation Lab</h2>

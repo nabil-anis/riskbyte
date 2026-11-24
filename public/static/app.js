@@ -371,18 +371,29 @@
     var app = $("app");
     var out = $("out");
     var roleBadge = $("role-badge");
+    var lic = $("lic");
+    var stats = $("stats");
+    var navWrap = document.querySelector(".nav-segmented-wrapper");
+    var mobileNav = document.querySelector(".mobile-floating-tabbar");
 
     if (authed) {
       if (login) login.style.display = "none";
       if (app) app.style.display = "flex";
       if (out) out.style.display = "inline-flex";
       if (roleBadge) roleBadge.style.display = "inline-flex";
+      if (lic) lic.style.display = "inline-flex";
+      if (stats) stats.style.display = "inline-flex";
+      if (navWrap) navWrap.style.display = "flex";
       setRole(currentRole);
     } else {
       if (login) login.style.display = "flex";
       if (app) app.style.display = "none";
       if (out) out.style.display = "none";
       if (roleBadge) roleBadge.style.display = "none";
+      if (lic) lic.style.display = "none";
+      if (stats) stats.style.display = "none";
+      if (navWrap) navWrap.style.display = "none";
+      if (mobileNav) mobileNav.style.display = "none";
     }
   }
 
