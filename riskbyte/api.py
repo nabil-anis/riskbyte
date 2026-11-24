@@ -122,7 +122,12 @@ def get_handler_class(svc):
                     return self._json(200, svc.license_status())
                 if path == "/api/stats":
                     return self._json(200, svc.stats())
+                if path == "/api/events":
+                    return self._json(200, svc.store.query("SELECT * FROM events ORDER BY id DESC LIMIT 100"))
             if method == "POST":
+                if path in ("/api/demo/reset", "/api/reset"):
+                    svc.reset()
+                    return self._json(200, {"ok": True, "message": "Demo data reset successfully"})
                 if (m := re.fullmatch(f"/api/alerts/{ID}/approve", path)):
                     return self._json(200, svc.approve(int(m.group(1)), self._actor(role)))
                 if (m := re.fullmatch(f"/api/alerts/{ID}/dismiss", path)):

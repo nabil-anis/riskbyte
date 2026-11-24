@@ -47,7 +47,7 @@ class TestDetect(unittest.TestCase):
         self.rules = load_rules(RULES)
 
     def test_all_rules_load(self):
-        self.assertEqual(len(self.rules), 5)
+        self.assertEqual(len(self.rules), 8)
 
     def test_threshold_fires_once_per_window(self):
         eng, fired = Engine(self.rules), []
@@ -63,6 +63,21 @@ class TestDetect(unittest.TestCase):
         h = eng.evaluate({"id": 2, "ts": 2, "process": "cmd.exe", "cmdline": "procdump -ma lsass.exe x.dmp", "host": "h"})
         self.assertEqual([x["rule"].id for x in h], ["rb-003"])
         self.assertEqual(eng.evaluate({"id": 3, "ts": 3, "process": "powershell.exe", "cmdline": "Get-Date"}), [])
+
+    def test_scenario_phishing(self):
+        eng = Engine(self.rules)
+        h = eng.evaluate({"id": 1, "ts": 1, "action": "email_link_click", "user": "j.doe", "message": "Clicked link to login-verify-account.com"})
+        self.assertEqual([x["rule"].id for x in h], ["rb-006"])
+
+    def test_scenario_ransomware(self):
+        eng = Engine(self.rules)
+        h = eng.evaluate({"id": 1, "ts": 1, "process": "vssadmin.exe", "cmdline": "vssadmin delete shadows /all /quiet", "host": "filesrv-01"})
+        self.assertEqual([x["rule"].id for x in h], ["rb-007"])
+
+    def test_scenario_anomalous_geo_login(self):
+        eng = Engine(self.rules)
+        h = eng.evaluate({"id": 1, "ts": 1, "action": "login", "outcome": "success", "message": "Login from anomalous country", "user": "svc-backup"})
+        self.assertEqual([x["rule"].id for x in h], ["rb-008"])
 
 
 class TestAgent(unittest.TestCase):
@@ -194,6 +209,15 @@ class TestServiceFlow(unittest.TestCase):
         self.assertIsNotNone(validate("isolate_host", "h; rm -rf /"))
         self.assertIsNotNone(validate("rm_rf", "x"))
         self.assertIsNone(validate("block_ip", "203.0.113.5"))
+
+    def test_reset_clears_data(self):
+        svc, _ = make_service()
+        svc.ingest([{"ts": time.time(), "host": "h", "process": "powershell.exe", "cmdline": "powershell -enc AAAA"}])
+        svc.process_pending()
+        self.assertGreater(len(svc.alerts()), 0)
+        svc.reset()
+        self.assertEqual(len(svc.alerts()), 0)
+        self.assertEqual(len(svc.store.query("SELECT * FROM events")), 0)
 
 
 class TestAPI(unittest.TestCase):

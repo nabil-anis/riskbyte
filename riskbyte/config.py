@@ -91,7 +91,9 @@ def _secret(name: str) -> str:
 
 def load() -> Config:
     dev = _bool("RISKBYTE_DEV_MODE")
-    provider = _env("RISKBYTE_LLM_PROVIDER", "ollama" if _env("RISKBYTE_LLM_URL") else "none").strip().lower()
+    gemini_key = _env("GEMINI_API_KEY") or _secret("RISKBYTE_LLM_API_KEY")
+    default_provider = "gemini" if _env("GEMINI_API_KEY") else ("ollama" if _env("RISKBYTE_LLM_URL") else "none")
+    provider = _env("RISKBYTE_LLM_PROVIDER", default_provider).strip().lower()
     if provider not in ("none", "ollama", "openai", "gemini"):
         raise ConfigError("RISKBYTE_LLM_PROVIDER must be none, ollama, openai or gemini")
     cfg = Config(
@@ -110,7 +112,7 @@ def load() -> Config:
         llm_provider=provider,
         llm_url=_env("RISKBYTE_LLM_URL", PROVIDER_DEFAULTS.get(provider, ("", ""))[0]),
         llm_model=_env("RISKBYTE_LLM_MODEL", PROVIDER_DEFAULTS.get(provider, ("", ""))[1]),
-        llm_api_key=_secret("RISKBYTE_LLM_API_KEY"),
+        llm_api_key=gemini_key if provider == "gemini" else _secret("RISKBYTE_LLM_API_KEY"),
         llm_timeout=int(_env("RISKBYTE_LLM_TIMEOUT", "60")),
         llm_redact=_bool("RISKBYTE_LLM_REDACT", provider in ("openai", "gemini")),
         response_mode=_env("RISKBYTE_RESPONSE_MODE", "dry_run"),

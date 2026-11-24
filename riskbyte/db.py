@@ -76,3 +76,11 @@ class Store:
             cur = self.conn.execute("DELETE FROM events WHERE ts < ? AND processed=1", (time.time() - days * 86400,))
             self.conn.commit()
             return cur.rowcount
+
+    def reset(self) -> None:
+        with self.lock:
+            self.conn.execute("DELETE FROM alerts")
+            self.conn.execute("DELETE FROM cases")
+            self.conn.execute("DELETE FROM events")
+            self.conn.execute("DELETE FROM audit")
+            self.conn.commit()

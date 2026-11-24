@@ -1,0 +1,8 @@
+id: rb-006
+title: Phishing link accessed from email gateway
+severity: high
+description: User clicked a known phishing or credential harvester link from email telemetry.
+tags: [initial-access, T1566.002]
+match:
+  action: email_link_click
+action: {kind: reset_password, target_field: user}

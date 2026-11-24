@@ -3,3 +3,5 @@
 203.0.113.50      # example malicious scanner (TEST-NET-3)
 198.51.100.99     # example C2 (TEST-NET-2)
 evil-update.example
+login-verify-account.com
+ransomware-c2.net

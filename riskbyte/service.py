@@ -166,6 +166,10 @@ class Service:
                 "audit_intact": self.store.verify_audit(), "version": "0.1.0",
                 "llm": self.cfg.llm_provider, "llm_redaction": self.cfg.llm_redact}
 
+    def reset(self) -> None:
+        self.store.reset()
+        self.engine = Engine(load_rules(self.cfg.rules_dir))
+
     # ---- background workers ---------------------------------------
     def start(self):
         t = threading.Thread(target=self._loop, name="worker", daemon=True)

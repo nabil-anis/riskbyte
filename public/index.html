@@ -58,6 +58,10 @@
       </div>
 
       <div class="header-actions">
+        <button id="role-badge" class="role-badge-pill analyst tactile-btn" type="button" title="Switch between Security Analyst, SOC Administrator, and Telemetry Ingest dashboards">
+          <span id="role-name-text">Security Analyst</span>
+          <svg style="width:12px;height:12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
         <span id="lic" class="island-pill-btn" style="cursor:default">Checking...</span>
         <span id="stats" class="island-pill-btn tabular-nums" style="cursor:default"></span>
       </div>
@@ -65,8 +69,9 @@
 
     <!-- Desktop / Tablet Centered Frosted Segmented Navigation -->
     <div class="nav-segmented-wrapper">
-      <nav class="nav-segmented-control tabs-group" aria-label="Sections">
-        <button data-t="alerts" class="tab-btn on tactile-btn" type="button">
+      <nav id="nav-tabs" class="nav-segmented-control tabs-group" aria-label="Sections">
+        <!-- Analyst Tabs -->
+        <button data-t="alerts" class="tab-btn on tactile-btn role-tab-analyst" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/>
@@ -76,7 +81,7 @@
           <span id="badge-alerts-count" class="tab-badge tabular-nums">0</span>
         </button>
 
-        <button data-t="cases" class="tab-btn tactile-btn" type="button">
+        <button data-t="cases" class="tab-btn tactile-btn role-tab-analyst" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
@@ -84,12 +89,67 @@
           <span>Incident Cases</span>
         </button>
 
-        <button data-t="audit" class="tab-btn tactile-btn" type="button">
+        <button data-t="demo" class="tab-btn tactile-btn role-tab-analyst" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="22" y1="12" x2="18" y2="12"/>
+            <line x1="6" y1="12" x2="2" y2="12"/>
+            <line x1="12" y1="6" x2="12" y2="2"/>
+            <line x1="12" y1="22" x2="12" y2="18"/>
+          </svg>
+          <span>Demo Lab</span>
+        </button>
+
+        <!-- Administrator Tabs -->
+        <button data-t="admin-overview" class="tab-btn tactile-btn role-tab-admin" type="button" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <span>Governance &amp; Engine</span>
+        </button>
+
+        <button data-t="audit" class="tab-btn tactile-btn role-tab-admin" type="button" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             <circle cx="12" cy="11" r="3"/>
           </svg>
           <span>Audit Trail</span>
+        </button>
+
+        <button data-t="admin-license" class="tab-btn tactile-btn role-tab-admin" type="button" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <line x1="6" y1="12" x2="18" y2="12"/>
+          </svg>
+          <span>License &amp; Policy</span>
+        </button>
+
+        <!-- Ingest Tabs -->
+        <button data-t="ingest-monitor" class="tab-btn tactile-btn role-tab-ingest" type="button" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          <span>Pipeline Monitor</span>
+        </button>
+
+        <button data-t="ingest-stream" class="tab-btn tactile-btn role-tab-ingest" type="button" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+          </svg>
+          <span>Live Telemetry Stream</span>
+        </button>
+
+        <button data-t="ingest-console" class="tab-btn tactile-btn role-tab-ingest" type="button" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"/>
+            <line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+          <span>Event Dispatcher</span>
         </button>
       </nav>
     </div>
@@ -106,7 +166,7 @@
           </svg>
         </div>
         <h1 class="auth-title">Riskbyte <span>SOC</span></h1>
-        <p class="auth-sub">Select your security role to enter the console</p>
+        <p class="auth-sub">Select your security role to enter the dedicated dashboard</p>
 
         <div id="lerr" class="auth-error" role="alert"></div>
 
@@ -119,8 +179,8 @@
               </svg>
             </div>
             <div class="auth-role-info">
-              <span class="auth-role-name">Security Analyst</span>
-              <span class="auth-role-desc">Triage incidents, investigate alerts, approve response</span>
+              <span class="auth-role-name">Security Analyst Dashboard</span>
+              <span class="auth-role-desc">Triage incidents, investigate alerts, approve response, run Demo lab</span>
             </div>
             <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
@@ -135,8 +195,8 @@
               </svg>
             </div>
             <div class="auth-role-info">
-              <span class="auth-role-name">SOC Administrator</span>
-              <span class="auth-role-desc">Full telemetry governance, engine config, audit verification</span>
+              <span class="auth-role-name">SOC Administrator Dashboard</span>
+              <span class="auth-role-desc">Governance metrics, cryptographic audit verification, license compliance</span>
             </div>
             <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
@@ -152,8 +212,8 @@
               </svg>
             </div>
             <div class="auth-role-info">
-              <span class="auth-role-name">Telemetry Ingest</span>
-              <span class="auth-role-desc">Event ingestion pipeline, agent syslog daemon</span>
+              <span class="auth-role-name">Telemetry Ingest Dashboard</span>
+              <span class="auth-role-desc">Ingestion pipeline health, live event stream, direct JSON testing</span>
             </div>
             <svg class="auth-role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="9 18 15 12 9 6"/>
@@ -184,7 +244,7 @@
     <main id="app" class="app-workspace" style="display:none">
       <div id="banner" class="license-banner"></div>
 
-      <!-- View 1: Alerts Master-Detail Split Pane -->
+      <!-- ANALYST VIEW 1: Alerts Master-Detail Split Pane -->
       <section id="v-alerts" class="ide-split-pane">
         <!-- Left Pane: Alerts Explorer -->
         <div class="glass-card explorer-pane">
@@ -227,7 +287,7 @@
         </div>
       </section>
 
-      <!-- View 2: Cases Table -->
+      <!-- ANALYST VIEW 2: Cases Table -->
       <section id="v-cases" class="data-table-wrapper" style="display:none">
         <div class="glass-card table-card">
           <div class="table-card-header">
@@ -243,7 +303,246 @@
         </div>
       </section>
 
-      <!-- View 3: Audit Trail Table -->
+      <!-- ANALYST VIEW 3: Interactive Attack Simulation Lab (Demo Tab) -->
+      <section id="v-demo" class="data-table-wrapper" style="display:none">
+        <div class="glass-card table-card">
+          <div class="demo-header-bar">
+            <div class="demo-title-group">
+              <h2>SOC Attack Simulation Lab</h2>
+              <p>Execute real attack scenarios through the complete detection, threat-intel, AI triage, response, and audit pipeline.</p>
+            </div>
+            <button id="demo-reset-btn" class="demo-reset-btn tactile-btn" type="button">
+              <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <span>Reset Demo Data</span>
+            </button>
+          </div>
+
+          <div id="demo-offline-banner" class="license-banner" style="display:none;background:rgba(255,159,10,0.15);border-color:rgba(255,159,10,0.3);color:var(--accent-orange);margin-bottom:18px;">
+            ⚠️ <strong>[Offline Simulation Fallback]</strong> Running in in-browser mock mode. To execute through your live Python backend, ensure server is running on port 8080 and toggle mode to "Live".
+          </div>
+
+          <!-- Scenario Cards Grid -->
+          <div class="demo-cards-grid">
+            <!-- Card 1: Phishing -->
+            <div class="demo-card s-high" data-scenario="phishing">
+              <div class="demo-card-top">
+                <div class="demo-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                </div>
+                <span class="severity-pill sev-high">High</span>
+              </div>
+              <h3 class="demo-card-title">Phishing Credential Harvester</h3>
+              <p class="demo-card-desc">User clicks credential harvesting link to <code>login-verify-account.com</code> from email gateway, followed by authentication attempt.</p>
+              <div class="demo-card-meta">
+                <span class="card-tag">Initial Access</span>
+                <span class="card-tag">T1566.002</span>
+                <span class="entity-badge">j.doe</span>
+              </div>
+              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="phishing">
+                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Run Attack</span>
+              </button>
+            </div>
+
+            <!-- Card 2: SSH Brute Force -->
+            <div class="demo-card s-medium" data-scenario="ssh_brute">
+              <div class="demo-card-top">
+                <div class="demo-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </div>
+                <span class="severity-pill sev-medium">Medium</span>
+              </div>
+              <h3 class="demo-card-title">SSH Brute Force Attack</h3>
+              <p class="demo-card-desc">Rapid dictionary attack against port 22 exceeding 5 failed logins within 5 minutes from blacklisted scanner <code>1.2.3.4</code>.</p>
+              <div class="demo-card-meta">
+                <span class="card-tag">Credential Access</span>
+                <span class="card-tag">T1110</span>
+                <span class="entity-badge">web-01</span>
+              </div>
+              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="ssh_brute">
+                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Run Attack</span>
+              </button>
+            </div>
+
+            <!-- Card 3: Encoded PowerShell Malware -->
+            <div class="demo-card s-high" data-scenario="malware">
+              <div class="demo-card-top">
+                <div class="demo-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                  </svg>
+                </div>
+                <span class="severity-pill sev-high">High</span>
+              </div>
+              <h3 class="demo-card-title">Malware (Encoded PowerShell)</h3>
+              <p class="demo-card-desc">Hidden Base64 encoded PowerShell execution executing in-memory download cradle and beaconing to C2 <code>198.51.100.99</code>.</p>
+              <div class="demo-card-meta">
+                <span class="card-tag">Execution</span>
+                <span class="card-tag">T1059.001</span>
+                <span class="entity-badge">fin-lt-042</span>
+              </div>
+              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="malware">
+                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Run Attack</span>
+              </button>
+            </div>
+
+            <!-- Card 4: Ransomware Activity -->
+            <div class="demo-card s-critical" data-scenario="ransomware">
+              <div class="demo-card-top">
+                <div class="demo-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                </div>
+                <span class="severity-pill sev-critical">Critical</span>
+              </div>
+              <h3 class="demo-card-title">Ransomware-Style Activity</h3>
+              <p class="demo-card-desc">Invocation of <code>vssadmin delete shadows</code> to delete backups followed by rapid bulk file modification across network shares.</p>
+              <div class="demo-card-meta">
+                <span class="card-tag">Impact</span>
+                <span class="card-tag">T1486 / T1490</span>
+                <span class="entity-badge">filesrv-01</span>
+              </div>
+              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="ransomware">
+                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Run Attack</span>
+              </button>
+            </div>
+
+            <!-- Card 5: Suspicious Geo Login -->
+            <div class="demo-card s-high" data-scenario="anomalous_login">
+              <div class="demo-card-top">
+                <div class="demo-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                  </svg>
+                </div>
+                <span class="severity-pill sev-high">High</span>
+              </div>
+              <h3 class="demo-card-title">Suspicious Geo Login</h3>
+              <p class="demo-card-desc">Successful authentication on service account originating from an unauthorized foreign IP <code>198.51.100.99</code>.</p>
+              <div class="demo-card-meta">
+                <span class="card-tag">Initial Access</span>
+                <span class="card-tag">T1078</span>
+                <span class="entity-badge">svc-backup</span>
+              </div>
+              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="anomalous_login">
+                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Run Attack</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Step-by-Step Execution Panel (Hidden initially) -->
+          <div id="demo-live-panel" class="demo-execution-panel" style="display:none">
+            <div class="demo-panel-header">
+              <div class="demo-panel-title">
+                <span class="island-dot" style="background:var(--accent-blue)"></span>
+                <span id="demo-live-scenario-name">Executing Scenario...</span>
+              </div>
+              <span id="demo-live-status-pill" class="status-badge new">Processing</span>
+            </div>
+
+            <div id="demo-steps-timeline" class="demo-steps-timeline">
+              <!-- Steps 1 to 7 injected dynamically -->
+            </div>
+
+            <!-- "What Happened?" Box -->
+            <div id="demo-what-happened" class="what-happened-box" style="display:none">
+              <div class="what-happened-title">
+                <svg style="width:16px;height:16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+                <span>What Happened? (Plain English Incident Brief)</span>
+              </div>
+              <p id="demo-what-happened-text" class="what-happened-text"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN VIEW 1: Governance & Overview -->
+      <section id="v-admin-overview" class="data-table-wrapper" style="display:none">
+        <div class="glass-card table-card">
+          <div class="table-card-header">
+            <div>
+              <h2>SOC Governance &amp; Engine Overview</h2>
+              <p>Platform security health, privacy redaction status, and registered Sigma detection rules.</p>
+            </div>
+            <div class="card-tag">SOC Admin View</div>
+          </div>
+
+          <div class="admin-metrics-grid">
+            <div class="admin-metric-card">
+              <div class="metric-label">Total Telemetry Ingested</div>
+              <div id="admin-stat-events" class="metric-val tabular-nums">0</div>
+              <div class="metric-sub">Events normalized in database</div>
+            </div>
+            <div class="admin-metric-card">
+              <div class="metric-label">Active Incidents</div>
+              <div id="admin-stat-cases" class="metric-val tabular-nums">0</div>
+              <div class="metric-sub">Correlated incident cases open</div>
+            </div>
+            <div class="admin-metric-card">
+              <div class="metric-label">Triage AI Provider</div>
+              <div id="admin-stat-llm" class="metric-val" style="font-size:20px;text-transform:uppercase;">Heuristic</div>
+              <div id="admin-stat-redaction" class="metric-sub">Local engine (Privacy safe)</div>
+            </div>
+            <div class="admin-metric-card">
+              <div class="metric-label">Audit Forensic Ledger</div>
+              <div id="admin-stat-audit" class="metric-val" style="color:var(--accent-green);font-size:20px;">Intact</div>
+              <div class="metric-sub">SHA-256 blockchain verification</div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <h3 style="font-size:15px;margin-bottom:12px;color:var(--text-primary);">Active Sigma Detection Rules</h3>
+            <div class="table-responsive">
+              <table class="macos-table tabular-nums">
+                <thead>
+                  <tr>
+                    <th>Rule ID</th>
+                    <th>Detection Name</th>
+                    <th>Severity</th>
+                    <th>MITRE ATT&CK</th>
+                    <th>Automated Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>rb-001</code></td><td>SSH brute force from a single source</td><td><span class="severity-pill sev-medium">medium</span></td><td>T1110</td><td><code>block_ip</code></td></tr>
+                  <tr><td><code>rb-002</code></td><td>Encoded PowerShell command loader</td><td><span class="severity-pill sev-high">high</span></td><td>T1059.001</td><td><code>isolate_host</code></td></tr>
+                  <tr><td><code>rb-003</code></td><td>Credential dumping tool signature (LSASS/ProcDump)</td><td><span class="severity-pill sev-critical">critical</span></td><td>T1003</td><td><code>isolate_host</code></td></tr>
+                  <tr><td><code>rb-004</code></td><td>Account added to administrators group</td><td><span class="severity-pill sev-medium">medium</span></td><td>T1098</td><td><code>disable_user</code></td></tr>
+                  <tr><td><code>rb-005</code></td><td>Repeated failed VPN logins</td><td><span class="severity-pill sev-low">low</span></td><td>T1078</td><td><code>block_ip</code></td></tr>
+                  <tr><td><code>rb-006</code></td><td>Phishing link accessed from email gateway</td><td><span class="severity-pill sev-high">high</span></td><td>T1566.002</td><td><code>reset_password</code></td></tr>
+                  <tr><td><code>rb-007</code></td><td>Ransomware shadow deletion &amp; bulk encryption</td><td><span class="severity-pill sev-critical">critical</span></td><td>T1486 / T1490</td><td><code>isolate_host</code></td></tr>
+                  <tr><td><code>rb-008</code></td><td>Suspicious login from anomalous country</td><td><span class="severity-pill sev-high">high</span></td><td>T1078</td><td><code>disable_user</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN VIEW 2: Audit Trail Table -->
       <section id="v-audit" class="data-table-wrapper" style="display:none">
         <div class="glass-card table-card">
           <div class="table-card-header">
@@ -261,6 +560,135 @@
           </div>
           <div class="table-responsive">
             <table id="at" class="macos-table audit-table tabular-nums"></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN VIEW 3: License & Compliance -->
+      <section id="v-admin-license" class="data-table-wrapper" style="display:none">
+        <div class="glass-card table-card">
+          <div class="table-card-header">
+            <div>
+              <h2>License &amp; Containment Guardrails</h2>
+              <p>Ed25519 digital signature licensing and containment firewall protection policies.</p>
+            </div>
+            <div class="card-tag">Compliance Policy</div>
+          </div>
+          <div class="admin-metrics-grid">
+            <div class="admin-metric-card">
+              <div class="metric-label">License Plan</div>
+              <div id="lic-card-plan" class="metric-val" style="font-size:22px;">Development</div>
+              <div id="lic-card-state" class="metric-sub">Active Ed25519 Verified</div>
+            </div>
+            <div class="admin-metric-card">
+              <div class="metric-label">Endpoint Capacity</div>
+              <div id="lic-card-endpoints" class="metric-val tabular-nums">Unlimited</div>
+              <div class="metric-sub">Monitored corporate workstations</div>
+            </div>
+            <div class="admin-metric-card">
+              <div class="metric-label">Automated Containment Mode</div>
+              <div class="metric-val" style="font-size:22px;color:var(--accent-teal);">Dry-Run</div>
+              <div class="metric-sub">Human-in-the-loop approval gate</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;padding:16px;background:var(--glass-inner);border:1px solid var(--glass-border-subtle);border-radius:var(--r-inner);">
+            <h4 style="font-size:14px;color:var(--text-primary);margin-bottom:8px;">Containment Safety Guardrails (Protected Networks)</h4>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+              To prevent accidental Denial of Service on internal corporate assets, the Riskbyte responder automatically validates targets. It explicitly refuses to execute <code>block_ip</code> against RFC 1918 private subnets (<code>10.0.0.0/8</code>, <code>172.16.0.0/12</code>, <code>192.168.0.0/16</code>), loopback (<code>127.0.0.1</code>), or configured critical infrastructure addresses.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- INGEST VIEW 1: Pipeline Monitor -->
+      <section id="v-ingest-monitor" class="data-table-wrapper" style="display:none">
+        <div class="glass-card table-card">
+          <div class="table-card-header">
+            <div>
+              <h2>Telemetry Ingestion Pipeline Monitor</h2>
+              <p>Status of RFC 3164 Syslog UDP daemon, HTTP REST collector, and schema normalizer.</p>
+            </div>
+            <div class="card-tag">Ingest Health</div>
+          </div>
+          <div class="admin-metrics-grid">
+            <div class="admin-metric-card">
+              <div class="metric-label">Syslog Daemon Listener</div>
+              <div class="metric-val" style="font-size:22px;color:var(--accent-green);">UDP 5514</div>
+              <div class="metric-sub">RFC 3164 native SSH parser active</div>
+            </div>
+            <div class="admin-metric-card">
+              <div class="metric-label">REST Ingest Endpoint</div>
+              <div class="metric-val" style="font-size:22px;color:var(--accent-blue);">POST /api/ingest</div>
+              <div class="metric-sub">Bearer token authentication required</div>
+            </div>
+            <div class="admin-metric-card">
+              <div class="metric-label">Total Normalized Events</div>
+              <div id="ingest-stat-total" class="metric-val tabular-nums">0</div>
+              <div class="metric-sub">Structured JSON event store records</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INGEST VIEW 2: Live Telemetry Stream Table -->
+      <section id="v-ingest-stream" class="data-table-wrapper" style="display:none">
+        <div class="glass-card table-card">
+          <div class="table-card-header">
+            <div>
+              <h2>Live Telemetry Stream</h2>
+              <p>Real-time feed of ingested endpoint, network, and gateway events.</p>
+            </div>
+            <div class="card-tag">Raw Event Feed</div>
+          </div>
+          <div class="table-responsive">
+            <table id="et" class="macos-table tabular-nums">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Timestamp</th>
+                  <th>Source</th>
+                  <th>Host</th>
+                  <th>User</th>
+                  <th>Process</th>
+                  <th>Action</th>
+                  <th>IP Address</th>
+                  <th>Message / Command</th>
+                </tr>
+              </thead>
+              <tbody id="events-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- INGEST VIEW 3: Direct Event Dispatcher Console -->
+      <section id="v-ingest-console" class="data-table-wrapper" style="display:none">
+        <div class="glass-card table-card">
+          <div class="table-card-header">
+            <div>
+              <h2>Direct Event Dispatcher</h2>
+              <p>Test the ingestion pipeline by dispatching custom JSON telemetry payloads directly to <code>/api/ingest</code>.</p>
+            </div>
+            <div class="card-tag">Collector Console</div>
+          </div>
+
+          <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="preset-syslog-btn" class="island-pill-btn tactile-btn" type="button">Load SSH Login Failure</button>
+            <button id="preset-powershell-btn" class="island-pill-btn tactile-btn" type="button">Load Encoded PowerShell</button>
+            <button id="preset-phish-btn" class="island-pill-btn tactile-btn" type="button">Load Email Gateway Click</button>
+          </div>
+
+          <div class="ingest-console-box">
+            <textarea id="ingest-payload-text" spellcheck="false" placeholder="Enter JSON event object or array..."></textarea>
+          </div>
+
+          <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;">
+            <button id="dispatch-event-btn" class="demo-attack-btn tactile-btn" style="width:auto;padding:10px 24px;" type="button">
+              <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 2 9.2 14.8 4 10"></polyline></svg>
+              <span>Dispatch Telemetry Batch</span>
+            </button>
+            <span id="dispatch-status-label" style="font-size:13px;color:var(--text-secondary);"></span>
           </div>
         </div>
       </section>
@@ -283,6 +711,17 @@
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
         </svg>
         <span>Cases</span>
+      </button>
+
+      <button data-t="demo" class="mobile-tab-btn tactile-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="22" y1="12" x2="18" y2="12"/>
+          <line x1="6" y1="12" x2="2" y2="12"/>
+          <line x1="12" y1="6" x2="12" y2="2"/>
+          <line x1="12" y1="22" x2="12" y2="18"/>
+        </svg>
+        <span>Demo</span>
       </button>
 
       <button data-t="audit" class="mobile-tab-btn tactile-btn" type="button">

@@ -1472,3 +1472,409 @@ html, body {
     padding: 16px;
   }
 }
+
+/* ── 3 Dashboards & Role Navigation Enhancements ──────────────── */
+.role-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--glass-chip);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-blue);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-badge-pill:hover {
+  background: var(--glass-chip-hover);
+  border-color: var(--accent-blue);
+}
+
+.role-badge-pill.analyst { color: var(--accent-blue); }
+.role-badge-pill.admin { color: var(--accent-purple); }
+.role-badge-pill.ingest { color: var(--accent-teal); }
+
+.role-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ── Attack Simulation Lab (Demo Tab) ────────────────────────── */
+.demo-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.demo-title-group h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.demo-title-group p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.demo-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  background: rgba(255, 69, 58, 0.15);
+  border: 1px solid rgba(255, 69, 58, 0.35);
+  border-radius: var(--r-pill);
+  color: var(--accent-red);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.demo-reset-btn:hover {
+  background: rgba(255, 69, 58, 0.25);
+  border-color: var(--accent-red);
+  transform: translateY(-1px);
+}
+
+.demo-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.demo-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  background: var(--glass-inner);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-inner);
+  box-shadow: var(--glass-shadow);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.demo-card:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.45);
+}
+
+.demo-card.active-attack {
+  border-color: var(--accent-blue);
+  background: rgba(10, 132, 255, 0.08);
+}
+
+.demo-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.demo-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border-subtle);
+  color: var(--text-primary);
+}
+
+.demo-card.s-critical .demo-card-icon { color: var(--accent-red); background: rgba(255, 69, 58, 0.12); }
+.demo-card.s-high .demo-card-icon { color: var(--accent-orange); background: rgba(255, 159, 10, 0.12); }
+.demo-card.s-medium .demo-card-icon { color: var(--accent-yellow); background: rgba(255, 214, 10, 0.12); }
+
+.demo-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.demo-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+
+.demo-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.demo-attack-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-btn);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.demo-attack-btn:hover {
+  background: #0071e3;
+  transform: translateY(-1px);
+}
+
+.demo-attack-btn.running {
+  background: var(--glass-chip-hover);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+/* ── Live Step-by-Step Panel ─────────────────────────────────── */
+.demo-execution-panel {
+  margin-top: 24px;
+  padding: 24px;
+  background: var(--glass-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-card);
+  box-shadow: var(--glass-shadow-lg);
+  backdrop-filter: blur(40px);
+}
+
+.demo-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--glass-border-subtle);
+  margin-bottom: 20px;
+}
+
+.demo-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.demo-steps-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.demo-step-row {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 14px;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: stepIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes stepIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.demo-step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 132, 255, 0.15);
+  border: 1px solid var(--accent-blue);
+  color: var(--accent-blue);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.demo-step-num.done {
+  background: rgba(48, 209, 88, 0.18);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.demo-step-card {
+  background: var(--glass-inner);
+  border: 1px solid var(--glass-border-subtle);
+  border-radius: var(--r-inner);
+  padding: 14px 16px;
+}
+
+.demo-step-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+}
+
+.demo-step-content {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.demo-step-content code {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--accent-teal);
+}
+
+.demo-approve-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.demo-approve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: var(--accent-green);
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.demo-approve-btn:hover {
+  background: #28b84d;
+  transform: scale(1.02);
+}
+
+.demo-approve-btn.approved {
+  background: rgba(48, 209, 88, 0.2);
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+  cursor: default;
+}
+
+.what-happened-box {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(10, 132, 255, 0.07);
+  border: 1px solid rgba(10, 132, 255, 0.28);
+  border-radius: var(--r-inner);
+}
+
+.what-happened-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin-bottom: 8px;
+}
+
+.what-happened-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Admin Dashboard Widgets ─────────────────────────────────── */
+.admin-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-metric-card {
+  padding: 20px;
+  background: var(--glass-inner);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-inner);
+}
+
+.admin-metric-card .metric-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.admin-metric-card .metric-val {
+  font-size: 28px;
+  font-weight: 800;
+  margin-top: 6px;
+  color: var(--text-primary);
+}
+
+.admin-metric-card .metric-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ── Ingest Dashboard Widgets ────────────────────────────────── */
+.ingest-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.ingest-console-box textarea {
+  width: 100%;
+  height: 180px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-inner);
+  padding: 14px;
+  color: var(--accent-teal);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  resize: vertical;
+  outline: none;
+}
+
+.ingest-console-box textarea:focus {
+  border-color: var(--accent-teal);
+}

@@ -1,0 +1,9 @@
+id: rb-007
+title: Ransomware volume shadow deletion and bulk encryption
+severity: critical
+description: Volume shadow copies deleted and bulk file modification detected, indicative of ransomware.
+tags: [impact, T1486, T1490]
+any_of:
+  - {cmdline|contains: "vssadmin delete shadows"}
+  - {action: mass_file_rename}
+action: {kind: isolate_host, target_field: host}

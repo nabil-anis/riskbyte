@@ -1,0 +1,10 @@
+id: rb-008
+title: Suspicious login from anomalous country or foreign IP
+severity: high
+description: User authentication succeeded from an unexpected foreign IP address or geographic location.
+tags: [initial-access, T1078]
+match:
+  action: login
+  outcome: success
+  message|contains: anomalous country
+action: {kind: disable_user, target_field: user}
