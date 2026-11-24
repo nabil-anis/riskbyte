@@ -301,8 +301,8 @@
         <div class="glass-card demo-lab-card">
           <div class="demo-header-bar">
             <div class="demo-title-group">
-              <h2>SOC Attack Simulation Lab</h2>
-              <p>Execute real attack scenarios through the complete detection, threat-intel, AI triage, response, and audit pipeline.</p>
+              <h2>SOC Client Defense &amp; Attack Simulation Lab</h2>
+              <p>Simulate real-world attacks against client infrastructure through the full ingestion, detection, threat intel, AI triage, containment approval, and forensic audit pipeline.</p>
             </div>
             <button id="demo-reset-btn" class="demo-reset-btn tactile-btn" type="button">
               <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -313,133 +313,42 @@
             </button>
           </div>
 
+          <!-- Mandatory Simulation Disclaimer -->
+          <div class="demo-disclaimer-banner">
+            <span class="disclaimer-badge">SIMULATION NOTICE</span>
+            <span>Simulated scenario. Not affiliated with these organizations. No real data.</span>
+          </div>
+
+          <!-- Client Organization Selector -->
+          <div class="demo-client-bar">
+            <div class="demo-client-select-wrap">
+              <label for="demo-client-select" class="demo-client-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <span>Protected Client Organization:</span>
+              </label>
+              <select id="demo-client-select" class="demo-client-select">
+                <option value="meezan" selected>Meezan Bank — Islamic Commercial Bank (Est. 2002)</option>
+                <option value="shu">Salim Habib University (SHU) — Higher Education, Korangi Creek</option>
+                <option value="contour">Contour Software — Constellation Software Subsidiary</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Client Profile Card (Dynamic) -->
+          <div id="demo-client-profile" class="client-profile-card">
+            <!-- Injected dynamically by JavaScript -->
+          </div>
+
           <div id="demo-offline-banner" class="license-banner" style="display:none;background:rgba(255,159,10,0.15);border-color:rgba(255,159,10,0.3);color:var(--accent-orange);margin-bottom:18px;">
             ⚠️ <strong>[Offline Simulation Fallback]</strong> Running in in-browser mock mode. To execute through your live Python backend, ensure server is running on port 8080 and toggle mode to "Live".
           </div>
 
-          <!-- Scenario Cards Grid -->
-          <div class="demo-cards-grid">
-            <!-- Card 1: Phishing -->
-            <div class="demo-card s-high" data-scenario="phishing">
-              <div class="demo-card-top">
-                <div class="demo-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                    <polyline points="22,6 12,13 2,6"></polyline>
-                  </svg>
-                </div>
-                <span class="severity-pill sev-high">High</span>
-              </div>
-              <h3 class="demo-card-title">Phishing Credential Harvester</h3>
-              <p class="demo-card-desc">User clicks credential harvesting link to <code>login-verify-account.com</code> from email gateway, followed by authentication attempt.</p>
-              <div class="demo-card-meta">
-                <span class="card-tag">Initial Access</span>
-                <span class="card-tag">T1566.002</span>
-                <span class="entity-badge">j.doe</span>
-              </div>
-              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="phishing">
-                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Run Attack</span>
-              </button>
-            </div>
-
-            <!-- Card 2: SSH Brute Force -->
-            <div class="demo-card s-medium" data-scenario="ssh_brute">
-              <div class="demo-card-top">
-                <div class="demo-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                  </svg>
-                </div>
-                <span class="severity-pill sev-medium">Medium</span>
-              </div>
-              <h3 class="demo-card-title">SSH Brute Force Attack</h3>
-              <p class="demo-card-desc">Rapid dictionary attack against port 22 exceeding 5 failed logins within 5 minutes from blacklisted scanner <code>1.2.3.4</code>.</p>
-              <div class="demo-card-meta">
-                <span class="card-tag">Credential Access</span>
-                <span class="card-tag">T1110</span>
-                <span class="entity-badge">web-01</span>
-              </div>
-              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="ssh_brute">
-                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Run Attack</span>
-              </button>
-            </div>
-
-            <!-- Card 3: Encoded PowerShell Malware -->
-            <div class="demo-card s-high" data-scenario="malware">
-              <div class="demo-card-top">
-                <div class="demo-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="4 17 10 11 4 5"></polyline>
-                    <line x1="12" y1="19" x2="20" y2="19"></line>
-                  </svg>
-                </div>
-                <span class="severity-pill sev-high">High</span>
-              </div>
-              <h3 class="demo-card-title">Malware (Encoded PowerShell)</h3>
-              <p class="demo-card-desc">Hidden Base64 encoded PowerShell execution executing in-memory download cradle and beaconing to C2 <code>198.51.100.99</code>.</p>
-              <div class="demo-card-meta">
-                <span class="card-tag">Execution</span>
-                <span class="card-tag">T1059.001</span>
-                <span class="entity-badge">fin-lt-042</span>
-              </div>
-              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="malware">
-                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Run Attack</span>
-              </button>
-            </div>
-
-            <!-- Card 4: Ransomware Activity -->
-            <div class="demo-card s-critical" data-scenario="ransomware">
-              <div class="demo-card-top">
-                <div class="demo-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                </div>
-                <span class="severity-pill sev-critical">Critical</span>
-              </div>
-              <h3 class="demo-card-title">Ransomware-Style Activity</h3>
-              <p class="demo-card-desc">Invocation of <code>vssadmin delete shadows</code> to delete backups followed by rapid bulk file modification across network shares.</p>
-              <div class="demo-card-meta">
-                <span class="card-tag">Impact</span>
-                <span class="card-tag">T1486 / T1490</span>
-                <span class="entity-badge">filesrv-01</span>
-              </div>
-              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="ransomware">
-                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Run Attack</span>
-              </button>
-            </div>
-
-            <!-- Card 5: Suspicious Geo Login -->
-            <div class="demo-card s-high" data-scenario="anomalous_login">
-              <div class="demo-card-top">
-                <div class="demo-card-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                  </svg>
-                </div>
-                <span class="severity-pill sev-high">High</span>
-              </div>
-              <h3 class="demo-card-title">Suspicious Geo Login</h3>
-              <p class="demo-card-desc">Successful authentication on service account originating from an unauthorized foreign IP <code>198.51.100.99</code>.</p>
-              <div class="demo-card-meta">
-                <span class="card-tag">Initial Access</span>
-                <span class="card-tag">T1078</span>
-                <span class="entity-badge">svc-backup</span>
-              </div>
-              <button class="demo-attack-btn tactile-btn" type="button" data-scenario="anomalous_login">
-                <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Run Attack</span>
-              </button>
-            </div>
+          <!-- Scenario Cards Grid (Dynamic per Client) -->
+          <div id="demo-cards-grid" class="demo-cards-grid">
+            <!-- Injected dynamically by JavaScript according to chosen client -->
           </div>
 
           <!-- Live Step-by-Step Execution Panel (Hidden initially) -->
@@ -448,6 +357,7 @@
               <div class="demo-panel-title">
                 <span class="island-dot" style="background:var(--accent-blue)"></span>
                 <span id="demo-live-scenario-name">Executing Scenario...</span>
+                <span id="demo-live-client-tag" class="client-badge">Meezan Bank</span>
               </div>
               <span id="demo-live-status-pill" class="status-badge new">Processing</span>
             </div>
@@ -528,6 +438,8 @@
                   <tr><td><code>rb-006</code></td><td>Phishing link accessed from email gateway</td><td><span class="severity-pill sev-high">high</span></td><td>T1566.002</td><td><code>reset_password</code></td></tr>
                   <tr><td><code>rb-007</code></td><td>Ransomware shadow deletion &amp; bulk encryption</td><td><span class="severity-pill sev-critical">critical</span></td><td>T1486 / T1490</td><td><code>isolate_host</code></td></tr>
                   <tr><td><code>rb-008</code></td><td>Suspicious login from anomalous country</td><td><span class="severity-pill sev-high">high</span></td><td>T1078</td><td><code>disable_user</code></td></tr>
+                  <tr><td><code>rb-009</code></td><td>Suspicious data exfiltration to external IP</td><td><span class="severity-pill sev-high">high</span></td><td>T1048</td><td><code>isolate_host</code></td></tr>
+                  <tr><td><code>rb-010</code></td><td>Unusual high-value fund transfer anomaly</td><td><span class="severity-pill sev-critical">critical</span></td><td>T1565</td><td><code>disable_user</code></td></tr>
                 </tbody>
               </table>
             </div>
@@ -640,6 +552,7 @@
                 <tr>
                   <th>ID</th>
                   <th>Timestamp</th>
+                  <th>Client</th>
                   <th>Source</th>
                   <th>Host</th>
                   <th>User</th>

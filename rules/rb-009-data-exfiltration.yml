@@ -1,0 +1,10 @@
+id: rb-009
+title: Unauthorized bulk data export or repository exfiltration
+severity: high
+description: Anomalous large data extraction or off-hours bulk repository clone detected.
+tags: [exfiltration, T1048, T1567]
+any_of:
+  - {action: data_export}
+  - {action: bulk_code_download}
+  - {cmdline|contains: "bulk_export"}
+action: {kind: isolate_host, target_field: host}

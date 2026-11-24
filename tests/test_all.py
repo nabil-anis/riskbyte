@@ -47,7 +47,7 @@ class TestDetect(unittest.TestCase):
         self.rules = load_rules(RULES)
 
     def test_all_rules_load(self):
-        self.assertEqual(len(self.rules), 8)
+        self.assertEqual(len(self.rules), 10)
 
     def test_threshold_fires_once_per_window(self):
         eng, fired = Engine(self.rules), []
@@ -269,6 +269,41 @@ class TestAPI(unittest.TestCase):
         self.assertIn(b"Riskbyte", req.read())
         self.assertEqual(self.call("/static/../config.py")[0], 404)
         self.assertEqual(self.call("/api/ingest", "dev-ingest", "POST", {"events": "x" * 1})[0], 202)
+
+    def test_all_frontend_routes_exist(self):
+        # Ingest sample event so alerts and cases exist
+        ev = {"host": "test-host-01", "user": "alice", "process": "powershell.exe",
+              "cmdline": "powershell -enc SQBFAFgA", "client": "Meezan Bank"}
+        self.call("/api/ingest", "dev-ingest", "POST", [ev])
+        self.svc.process_pending()
+        _, alerts, _ = self.call("/api/alerts", "dev-analyst")
+        self.assertTrue(len(alerts) > 0)
+        aid = alerts[0]["id"]
+
+        # List of routes called by frontend (app.js)
+        routes = [
+            ("GET", "/healthz", None),
+            ("GET", "/api/stats", "dev-analyst"),
+            ("GET", "/api/license", "dev-analyst"),
+            ("GET", "/api/alerts", "dev-analyst"),
+            ("GET", f"/api/alerts/{aid}", "dev-analyst"),
+            ("GET", "/api/cases", "dev-analyst"),
+            ("GET", "/api/audit", "dev-analyst"),
+            ("GET", "/api/events", "dev-analyst"),
+            ("POST", "/api/ingest", "dev-ingest"),
+            ("POST", f"/api/alerts/{aid}/approve", "dev-analyst"),
+            ("POST", "/api/demo/reset", "dev-analyst"),
+        ]
+        for method, route, token in routes:
+            body = [ev] if route == "/api/ingest" else None
+            status, resp, _ = self.call(route, token, method=method, body=body)
+            self.assertNotEqual(status, 404, f"Front-end route {method} {route} returned 404!")
+
+    def test_friendly_404_error(self):
+        status, resp, _ = self.call("/api/nonexistent_route", "dev-analyst")
+        self.assertEqual(status, 404)
+        self.assertIn("API route not found", resp["error"])
+        self.assertIn("available_routes", resp)
 
 
 class MockCloud:

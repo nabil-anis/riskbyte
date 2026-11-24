@@ -19,6 +19,7 @@ ALIASES = {
     "action": ("action", "event", "eventtype"),
     "outcome": ("outcome", "result", "status"),
     "message": ("message", "msg"),
+    "client": ("client", "organization", "org", "customer"),
 }
 
 
@@ -95,7 +96,7 @@ def normalize(raw, source: str = "api"):
     except (ValueError, TypeError):
         return None
     out = {"ts": ev["ts"], "source": _clean(source, 32)}
-    for f in ("host", "user", "process", "action", "outcome"):
+    for f in ("host", "user", "process", "action", "outcome", "client"):
         out[f] = _clean(ev.get(f))
     for f in ("src_ip", "dst_ip"):
         out[f] = _ip(ev.get(f))

@@ -72,17 +72,28 @@ def get_handler_class(svc):
                 self._send(200, f.read(), mimes.get(name, "text/plain"))
 
         def _route(self, method):
-            raw_path = self.headers.get("x-forwarded-uri") or self.headers.get("x-matched-path") or self.path
-            path_part, _, qs = raw_path.partition("?")
+            # Parse raw path and query string from self.path or headers
+            path_part, _, qs = self.path.partition("?")
             query = dict(p.split("=", 1) for p in qs.split("&") if "=" in p)
+
+            # Prioritize __path from query string (used by Vercel rewrites in vercel.json)
             if "__path" in query:
-                path = query["__path"]
-            elif self.headers.get("x-matched-path"):
-                path = self.headers["x-matched-path"].partition("?")[0]
+                raw_target = query["__path"]
+                path, _, sub_qs = raw_target.partition("?")
+                for p in sub_qs.split("&"):
+                    if "=" in p:
+                        k, v = p.split("=", 1)
+                        query.setdefault(k, v)
             elif self.headers.get("x-forwarded-uri"):
-                path = self.headers["x-forwarded-uri"].partition("?")[0]
+                path, _, _ = self.headers["x-forwarded-uri"].partition("?")
+            elif self.headers.get("x-matched-path") and not self.headers.get("x-matched-path", "").endswith(".py"):
+                path, _, _ = self.headers["x-matched-path"].partition("?")
             else:
                 path = path_part
+
+            # Normalize trailing slash (keep root '/' intact)
+            if len(path) > 1 and path.endswith("/"):
+                path = path.rstrip("/")
 
             if method == "GET":
                 if path == "/healthz":
@@ -91,6 +102,7 @@ def get_handler_class(svc):
                     return self._static("")
                 if path.startswith("/static/"):
                     return self._static(path[8:])
+
             role = role_of(self.headers.get("Authorization", ""))
             if not role:
                 return self._json(401, {"error": "unauthorized"})
@@ -107,23 +119,26 @@ def get_handler_class(svc):
                 except Exception:
                     pass
                 return self._json(202, {"accepted": accepted})
+
             if not analyst:
                 return self._json(403, {"error": "forbidden"})
+
             if method == "GET":
                 if path == "/api/alerts":
                     return self._json(200, svc.alerts(query.get("status")))
                 if (m := re.fullmatch(f"/api/alerts/{ID}", path)):
                     return self._json(200, svc.alert_detail(int(m.group(1))))
                 if path == "/api/cases":
-                    return self._json(200, svc.store.query("SELECT * FROM cases ORDER BY id DESC LIMIT 100"))
+                    return self._json(200, svc.cases())
                 if path == "/api/audit":
-                    return self._json(200, svc.store.query("SELECT id,ts,actor,kind,alert_id,detail FROM audit ORDER BY id DESC LIMIT 200"))
+                    return self._json(200, svc.audit())
                 if path == "/api/license":
                     return self._json(200, svc.license_status())
                 if path == "/api/stats":
                     return self._json(200, svc.stats())
                 if path == "/api/events":
-                    return self._json(200, svc.store.query("SELECT * FROM events ORDER BY id DESC LIMIT 100"))
+                    return self._json(200, svc.events())
+
             if method == "POST":
                 if path in ("/api/demo/reset", "/api/reset"):
                     svc.reset()
@@ -132,7 +147,27 @@ def get_handler_class(svc):
                     return self._json(200, svc.approve(int(m.group(1)), self._actor(role)))
                 if (m := re.fullmatch(f"/api/alerts/{ID}/dismiss", path)):
                     return self._json(200, svc.dismiss(int(m.group(1)), self._actor(role)))
-            return self._json(404, {"error": "not found"})
+
+            return self._json(404, {
+                "error": f"API route not found: {method} {path}",
+                "route": path,
+                "method": method,
+                "suggestion": f"The endpoint '{path}' is not registered on this Riskbyte server. Check endpoint URL or switch to 'In-Browser Sim' mode.",
+                "available_routes": [
+                    "GET /healthz",
+                    "GET /api/stats",
+                    "GET /api/license",
+                    "GET /api/alerts",
+                    "GET /api/alerts/<id>",
+                    "POST /api/alerts/<id>/approve",
+                    "POST /api/alerts/<id>/dismiss",
+                    "GET /api/cases",
+                    "GET /api/audit",
+                    "GET /api/events",
+                    "POST /api/ingest",
+                    "POST /api/demo/reset"
+                ]
+            })
 
         def _handle(self, method):
             try:

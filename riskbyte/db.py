@@ -7,21 +7,21 @@ PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS events(
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL NOT NULL, source TEXT, host TEXT, user TEXT,
   src_ip TEXT, dst_ip TEXT, process TEXT, cmdline TEXT, action TEXT, outcome TEXT, message TEXT,
-  processed INTEGER NOT NULL DEFAULT 0);
+  client TEXT, processed INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS ix_events_ts ON events(ts);
 CREATE INDEX IF NOT EXISTS ix_events_proc ON events(processed);
 CREATE INDEX IF NOT EXISTS ix_events_host ON events(host, ts);
 CREATE TABLE IF NOT EXISTS cases(
-  id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, entity TEXT, title TEXT, severity TEXT, status TEXT);
+  id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, entity TEXT, title TEXT, severity TEXT, status TEXT, client TEXT);
 CREATE TABLE IF NOT EXISTS alerts(
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, rule_id TEXT, title TEXT, severity TEXT, status TEXT,
-  host TEXT, user TEXT, src_ip TEXT, event_ids TEXT, triage TEXT, proposed_action TEXT, case_id INTEGER);
+  host TEXT, user TEXT, src_ip TEXT, event_ids TEXT, triage TEXT, proposed_action TEXT, case_id INTEGER, client TEXT);
 CREATE INDEX IF NOT EXISTS ix_alerts_status ON alerts(status);
 CREATE TABLE IF NOT EXISTS audit(
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts REAL, actor TEXT, kind TEXT, alert_id INTEGER,
-  detail TEXT, prev_hash TEXT, hash TEXT);
+  detail TEXT, prev_hash TEXT, hash TEXT, client TEXT);
 """
-EVENT_COLS = ("ts", "source", "host", "user", "src_ip", "dst_ip", "process", "cmdline", "action", "outcome", "message")
+EVENT_COLS = ("ts", "source", "host", "user", "src_ip", "dst_ip", "process", "cmdline", "action", "outcome", "message", "client")
 
 
 class Store:
@@ -31,6 +31,11 @@ class Store:
         self.lock = threading.RLock()
         with self.lock:
             self.conn.executescript(SCHEMA)
+            for tbl in ("events", "cases", "alerts", "audit"):
+                try:
+                    self.conn.execute(f"ALTER TABLE {tbl} ADD COLUMN client TEXT")
+                except sqlite3.OperationalError:
+                    pass
 
     def execute(self, sql: str, params=()) -> int:
         with self.lock:
@@ -51,15 +56,15 @@ class Store:
         return self.execute(f"INSERT INTO events({cols}) VALUES({','.join('?' * len(EVENT_COLS))})",
                             tuple(ev.get(c) for c in EVENT_COLS))
 
-    def audit(self, actor: str, kind: str, alert_id, detail) -> None:
-        detail = detail if isinstance(detail, str) else json.dumps(detail, sort_keys=True)
+    def audit(self, actor: str, kind: str, alert_id, detail, client: str = None) -> None:
+        detail_str = detail if isinstance(detail, str) else json.dumps(detail, sort_keys=True)
         with self.lock:
             last = self.conn.execute("SELECT hash FROM audit ORDER BY id DESC LIMIT 1").fetchone()
             prev = last["hash"] if last else "0" * 64
             ts = time.time()
-            h = hashlib.sha256(f"{prev}|{ts!r}|{actor}|{kind}|{alert_id}|{detail}".encode()).hexdigest()
-            self.conn.execute("INSERT INTO audit(ts,actor,kind,alert_id,detail,prev_hash,hash) VALUES(?,?,?,?,?,?,?)",
-                              (ts, actor, kind, alert_id, detail, prev, h))
+            h = hashlib.sha256(f"{prev}|{ts!r}|{actor}|{kind}|{alert_id}|{detail_str}".encode()).hexdigest()
+            self.conn.execute("INSERT INTO audit(ts,actor,kind,alert_id,detail,prev_hash,hash,client) VALUES(?,?,?,?,?,?,?,?)",
+                              (ts, actor, kind, alert_id, detail_str, prev, h, client))
             self.conn.commit()
 
     def verify_audit(self) -> bool:

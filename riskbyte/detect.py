@@ -8,7 +8,7 @@ import yaml
 
 log = logging.getLogger("riskbyte.detect")
 SEVERITIES = ("low", "medium", "high", "critical")
-FIELDS = ("host", "user", "src_ip", "dst_ip", "process", "cmdline", "action", "outcome", "message", "source")
+FIELDS = ("host", "user", "src_ip", "dst_ip", "process", "cmdline", "action", "outcome", "message", "source", "client")
 
 
 @dataclass

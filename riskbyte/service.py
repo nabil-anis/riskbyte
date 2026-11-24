@@ -63,6 +63,7 @@ class Service:
 
     def _create_alert(self, hit):
         r, ev = hit["rule"], hit["event"]
+        client = ev.get("client")
         action = None
         if r.action:
             target = ev.get(r.action["target_field"])
@@ -74,15 +75,17 @@ class Service:
             case_id = case["id"]
             if SEV_RANK[r.severity] > SEV_RANK[case["severity"]]:
                 self.store.execute("UPDATE cases SET severity=? WHERE id=?", (r.severity, case_id))
+            if client and not case.get("client"):
+                self.store.execute("UPDATE cases SET client=? WHERE id=?", (client, case_id))
         else:
-            case_id = self.store.execute("INSERT INTO cases(ts,entity,title,severity,status) VALUES(?,?,?,?,'open')",
-                                         (time.time(), entity, f"Investigation: {entity}", r.severity))
+            case_id = self.store.execute("INSERT INTO cases(ts,entity,title,severity,status,client) VALUES(?,?,?,?,'open',?)",
+                                         (time.time(), entity, f"Investigation: {entity}", r.severity, client))
         aid = self.store.execute(
-            "INSERT INTO alerts(ts,rule_id,title,severity,status,host,user,src_ip,event_ids,proposed_action,case_id) "
-            "VALUES(?,?,?,?,'new',?,?,?,?,?,?)",
+            "INSERT INTO alerts(ts,rule_id,title,severity,status,host,user,src_ip,event_ids,proposed_action,case_id,client) "
+            "VALUES(?,?,?,?,'new',?,?,?,?,?,?,?)",
             (ev["ts"], r.id, r.title, r.severity, ev.get("host"), ev.get("user"), ev.get("src_ip"),
-             json.dumps(hit["event_ids"]), json.dumps(action) if action else None, case_id))
-        self.store.audit("system", "alert_created", aid, {"rule": r.id, "severity": r.severity, "case": case_id})
+             json.dumps(hit["event_ids"]), json.dumps(action) if action else None, case_id, client))
+        self.store.audit("system", "alert_created", aid, {"rule": r.id, "severity": r.severity, "case": case_id, "client": client}, client=client)
         return aid
 
     def _load_alert(self, aid: int) -> dict:
@@ -101,13 +104,14 @@ class Service:
 
     def _triage(self, aid: int):
         a = self._load_alert(aid)
+        client = a.get("client")
         result = self.triage.investigate(a, self._events(a["event_ids"]))
         status = "triaged"
         if self.triage.should_auto_close(a, result):
             status = "auto_closed"
         self.store.execute("UPDATE alerts SET triage=?, status=?, proposed_action=? WHERE id=?",
                            (json.dumps(result), status, json.dumps(result["proposed_action"]) if result["proposed_action"] else None, aid))
-        self.store.audit("agent", "triaged", aid, {"verdict": result["verdict"], "engine": result["engine"], "status": status})
+        self.store.audit("agent", "triaged", aid, {"verdict": result["verdict"], "engine": result["engine"], "status": status, "client": client}, client=client)
         if status == "auto_closed":
             self._maybe_close_case(a["case_id"])
 
@@ -116,6 +120,7 @@ class Service:
         if not self.license_status()["can_approve"]:
             raise ServiceError("license does not permit response actions", 402)
         a = self._load_alert(aid)
+        client = a.get("client")
         if a["status"] != "triaged":
             raise ServiceError(f"alert is '{a['status']}', only triaged alerts can be approved", 409)
         act = a["proposed_action"]
@@ -124,16 +129,17 @@ class Service:
         ok, msg = self.responder.execute(act["kind"], act["target"], aid)
         status = "executed" if ok else "failed"
         self.store.execute("UPDATE alerts SET status=? WHERE id=?", (status, aid))
-        self.store.audit(actor, "action_approved", aid, {"action": act, "ok": ok, "result": msg})
+        self.store.audit(actor, "action_approved", aid, {"action": act, "ok": ok, "result": msg, "client": client}, client=client)
         self._maybe_close_case(a["case_id"])
         return {"status": status, "result": msg}
 
     def dismiss(self, aid: int, actor: str) -> dict:
         a = self._load_alert(aid)
+        client = a.get("client")
         if a["status"] not in ("new", "triaged", "failed"):
             raise ServiceError(f"alert is '{a['status']}' and cannot be dismissed", 409)
         self.store.execute("UPDATE alerts SET status='dismissed' WHERE id=?", (aid,))
-        self.store.audit(actor, "alert_dismissed", aid, {})
+        self.store.audit(actor, "alert_dismissed", aid, {"client": client}, client=client)
         self._maybe_close_case(a["case_id"])
         return {"status": "dismissed"}
 
@@ -157,6 +163,15 @@ class Service:
         a = self._load_alert(aid)
         a["events"] = self._events(a["event_ids"])
         return a
+
+    def cases(self, limit=100) -> list:
+        return self.store.query("SELECT * FROM cases ORDER BY id DESC LIMIT ?", (min(limit, 500),))
+
+    def audit(self, limit=200) -> list:
+        return self.store.query("SELECT id,ts,actor,kind,alert_id,detail,client,prev_hash,hash FROM audit ORDER BY id DESC LIMIT ?", (min(limit, 500),))
+
+    def events(self, limit=100) -> list:
+        return self.store.query("SELECT * FROM events ORDER BY id DESC LIMIT ?", (min(limit, 500),))
 
     def stats(self) -> dict:
         q = self.store.one

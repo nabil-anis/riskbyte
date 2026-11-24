@@ -5,3 +5,8 @@
 evil-update.example
 login-verify-account.com
 ransomware-c2.net
+meezan-fake-login.com
+shu-admissions-phish.com
+contour-c2-stage.net
+198.51.100.44
+203.0.113.88

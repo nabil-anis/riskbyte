@@ -1,0 +1,9 @@
+id: rb-010
+title: Unauthorized fund transfer or payment API anomaly
+severity: critical
+description: Irregular or anomalous financial transaction detected exceeding risk threshold.
+tags: [financial-fraud, T1565]
+any_of:
+  - {action: fund_transfer}
+  - {process: raast_api.exe}
+action: {kind: disable_user, target_field: user}
